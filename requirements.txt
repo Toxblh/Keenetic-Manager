@@ -1,0 +1,4 @@
+PyGObject
+requests
+netifaces
+keyring
