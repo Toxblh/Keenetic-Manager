@@ -29,24 +29,40 @@ class RouterManager(Adw.ApplicationWindow):
         self.current_router = None
 
         # Основная компоновка
-        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.set_content(self.main_box)
+        self.main_window = Adw.NavigationSplitView()
+        self.main_window.set_max_sidebar_width(220)
+        self.main_window.set_min_sidebar_width(220)
+        self.set_content(self.main_window)
+        
+        # Левая часть
+        self.left = Adw.ToolbarView()
+        self.left.add_top_bar(Adw.HeaderBar())
+        
+        # Боковая панель
+        self.side_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.left.set_content(self.side_panel)
+
+        self.sidebar = Adw.NavigationPage()
+        self.sidebar.set_title("Менеджер роутеров")
+        self.sidebar.set_child(self.left)
+        
+        # Основная область контента
+        self.main_content = Adw.ViewStack()
+        
+        # Правая часть
+        self.right = Adw.ToolbarView()
+        self.right.set_content(self.main_content)
+
+        self.main_box = Adw.NavigationPage()
+        self.main_box.set_child(self.right)
 
         # Заголовок окна
         self.create_header_bar()
 
         # Разделение на боковую панель и основной контент
-        self.paned = Gtk.Paned.new(Gtk.Orientation.HORIZONTAL)
-        self.main_box.append(self.paned)
-
-        # Боковая панель
-        self.side_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        self.paned.set_start_child(self.side_panel)
-
-        # Основная область контента
-        self.main_content = Adw.ViewStack()
-        self.paned.set_end_child(self.main_content)
-
+        self.main_window.set_sidebar(self.sidebar)
+        self.main_window.set_content(self.main_box)
+        
         # Добавляем кнопки в боковую панель
         self.add_side_panel_buttons()
 
@@ -72,7 +88,7 @@ class RouterManager(Adw.ApplicationWindow):
 
     def create_header_bar(self):
         header_bar = Adw.HeaderBar()
-        self.main_box.append(header_bar)
+        self.right.add_top_bar(header_bar)
 
         # Выпадающий список роутеров
         self.router_combo = Gtk.ComboBoxText()
@@ -101,11 +117,15 @@ class RouterManager(Adw.ApplicationWindow):
         # Кнопка VPN
         vpn_button = Gtk.Button(label="VPN")
         vpn_button.connect("clicked", self.on_vpn_button_clicked)
+        vpn_button.set_margin_start(10)
+        vpn_button.set_margin_end(10)
         self.side_panel.append(vpn_button)
 
         # Кнопка Онлайн клиенты
         clients_button = Gtk.Button(label="Клиенты онлайн")
         clients_button.connect("clicked", self.on_clients_button_clicked)
+        clients_button.set_margin_start(10)
+        clients_button.set_margin_end(10)
         self.side_panel.append(clients_button)
 
         # Кнопка Быстрые настройки
@@ -244,6 +264,8 @@ class RouterManager(Adw.ApplicationWindow):
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled_window.set_min_content_height(400)
+        scrolled_window.set_margin_start(10)
+        scrolled_window.set_margin_end(10)
         self.vpn_page.append(scrolled_window)
 
         # Создаем Grid
@@ -251,22 +273,10 @@ class RouterManager(Adw.ApplicationWindow):
         grid.set_column_homogeneous(False)
         scrolled_window.set_child(grid)
 
-        # Заголовки столбцов
-        name_header = Gtk.Label(label="Клиент")
-        name_header.set_xalign(0)
-        grid.attach(name_header, 0, 0, 1, 1)
-
-        default_header = Gtk.Label(label="По умолчанию")
-        grid.attach(default_header, 1, 0, 1, 1)
-
         # Добавляем заголовки для каждой политики
         policy_names = []
         for policy_name, policy_info in policies.items():
             policy_names.append((policy_name, policy_info.get("description", policy_name)))
-
-        for idx, (policy_name, policy_desc) in enumerate(policy_names):
-            header = Gtk.Label(label=policy_desc)
-            grid.attach(header, idx + 2, 0, 1, 1)
 
         # Отображение клиентов в таблице
         for row_idx, client in enumerate(online_clients, start=1):
@@ -282,6 +292,8 @@ class RouterManager(Adw.ApplicationWindow):
             name_text = f"{client_name}"
             if is_current_pc:
                 name_text += " [Это вы]"
+            if client.get("deny", True):
+                name_text += " (x)"
             name_label = Gtk.Label(label=name_text)
             name_label.set_xalign(0)
             grid.attach(name_label, 0, row_idx, 1, 1)
