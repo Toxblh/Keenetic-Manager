@@ -7,7 +7,11 @@ from requests.exceptions import RequestException
 
 class KeeneticRouter:
     def __init__(self, address, username, password, name):
-        self.base_url = f"http://{address}"
+        if not address.startswith("http"):
+            if address.endswith("/"):
+                address = address[:-1]
+            address = f"http://{address}"
+        self.base_url = address
         self.username = username
         self.password = password
         self.name = name

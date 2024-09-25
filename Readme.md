@@ -26,7 +26,8 @@ python3 ./main.py
 ```
 
 Добавьте роутер нажав "+"
-Укажите ваш IP адрес. KeenDNS НЕ РАБОТАЕТ!
+Укажите ваш IP адрес или KeenDNS.
+KeenDNS пример: `https://XXXX.keenetic.link` где XXXX ваш поддомен.
 
 <img src="./assets/login.png" alt="Keenetic Manager" width="400">
 
