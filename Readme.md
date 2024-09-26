@@ -1,4 +1,5 @@
-# Keenetic Manager
+# Keenetic Manager 
+[![Github All Releases](https://img.shields.io/github/downloads/Toxblh/Keenetic-Manager/total.svg)](https://github.com/Toxblh/Keenetic-Manager/releases)
 
 <img src="./assets/shot.png" alt="Keenetic Manager" width="800">
 
