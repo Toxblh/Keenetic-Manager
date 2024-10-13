@@ -9,7 +9,7 @@ Adw.init()
 
 class RouterManagerApplication(Adw.Application):
     def __init__(self):
-        super().__init__(application_id='com.toxblh.RouterManager', flags=Gio.ApplicationFlags.FLAGS_NONE)
+        super().__init__(application_id='ru.toxblh.RouterManager', flags=Gio.ApplicationFlags.FLAGS_NONE)
 
     def do_activate(self):
         win = RouterManager(application=self)

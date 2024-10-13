@@ -266,6 +266,7 @@ class RouterManager(Adw.ApplicationWindow):
         scrolled_window.set_min_content_height(400)
         scrolled_window.set_margin_start(10)
         scrolled_window.set_margin_end(10)
+        scrolled_window.set_vexpand(True)
         self.vpn_page.append(scrolled_window)
 
         # Создаем Grid
@@ -352,6 +353,9 @@ class RouterManager(Adw.ApplicationWindow):
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled_window.set_min_content_height(400)
+        scrolled_window.set_margin_start(10)
+        scrolled_window.set_margin_end(10)
+        scrolled_window.set_vexpand(True)
         self.clients_page.append(scrolled_window)
 
         # Отображение клиентов в списке
