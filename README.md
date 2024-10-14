@@ -1,7 +1,9 @@
+
+<img src="data/icons/hicolor/scalable/apps/ru.toxblh.KeeneticManager.svg" align="right" width="40" height="40">
 # Keenetic Manager 
 [![Github All Releases](https://img.shields.io/github/downloads/Toxblh/Keenetic-Manager/total.svg)](https://github.com/Toxblh/Keenetic-Manager/releases)
 
-<img src="./assets/shot.png" alt="Keenetic Manager" width="800">
+<img src="./screenshots/shot.png" alt="Keenetic Manager" width="800">
 
 ## Установка
 
@@ -24,6 +26,6 @@ python3 ./src/main.py
 Укажите ваш IP адрес или KeenDNS.
 KeenDNS пример: `https://XXXX.keenetic.link` где XXXX ваш поддомен.
 
-<img src="./assets/login.png" alt="Keenetic Manager" width="400">
+<img src="./screenshots/login.png" alt="Keenetic Manager" width="400">
 
 И можете начать управлять, выбрав категорию.
