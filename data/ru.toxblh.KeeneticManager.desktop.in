@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Keenetic Manager
+Exec=keeneticmanager
+Icon=ru.toxblh.KeeneticManager
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=GTK;
+StartupNotify=true
+DBusActivatable=true

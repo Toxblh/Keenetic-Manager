@@ -3,33 +3,27 @@
 
 <img src="./assets/shot.png" alt="Keenetic Manager" width="800">
 
-## Требования
-Python 3.x
-Установленные библиотеки (если используются дополнительные библиотеки, укажите их здесь)
-
 ## Установка
 
-Склонируйте репозиторий:
 ```bash
 git clone https://github.com/Toxblh/Keenetic-Manager.git
 cd Keenetic-Manager
+make setup
+make installz
 ```
 
-Установите необходимые зависимости:
+## Использование без установки
+
+Установите необходимые зависимости и запустите
 ```bash
 pip3 install -r requirements.txt
+python3 ./src/main.py
 ```
 
-## Использование
-
-```bash
-python3 ./main.py
-```
-
-Добавьте роутер нажав "+"
+Добавьте роутер, нажав "+"
 Укажите ваш IP адрес или KeenDNS.
 KeenDNS пример: `https://XXXX.keenetic.link` где XXXX ваш поддомен.
 
 <img src="./assets/login.png" alt="Keenetic Manager" width="400">
 
-И можете начать управлять выбрав категорию.
+И можете начать управлять, выбрав категорию.

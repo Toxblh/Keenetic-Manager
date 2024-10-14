@@ -1,0 +1,13 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+data/ru.toxblh.KeeneticManager.desktop.in
+data/ru.toxblh.KeeneticManager.metainfo.xml.in
+data/ru.toxblh.KeeneticManager.gschema.xml
+src/main.py
+src/dialogs.py
+src/keenetic_router.py
+src/main.py
+src/router_manager_app.py
+src/router_manager.py
+src/utils.py
+src/config.py

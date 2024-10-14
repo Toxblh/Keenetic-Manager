@@ -1,4 +1,3 @@
-PyGObject
 requests
 netifaces
 keyring

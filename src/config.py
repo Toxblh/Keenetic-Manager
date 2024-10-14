@@ -1,11 +1,13 @@
-# config.py
 import json
 import os
+from pathlib import Path
 
-CONFIG_FILE = 'routers.json'
+CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "keenetic-manager"
+CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+CONFIG_FILE = CONFIG_DIR / "routers.json"
 
 def load_routers():
-    if os.path.exists(CONFIG_FILE):
+    if CONFIG_FILE.exists():
         try:
             with open(CONFIG_FILE, 'r') as f:
                 routers = json.load(f)

@@ -1,20 +1,18 @@
-# router_manager.py
-
 import gi
 gi.require_version('Adw', '1')
 gi.require_version('Gtk', '4.0')
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, Gtk, Gio
 
 import keyring
-from keenetic_router import KeeneticRouter
-from dialogs import AddEditRouterDialog
-from utils import (
+from .keenetic_router import KeeneticRouter
+from .dialogs import AddEditRouterDialog
+from .utils import (
     get_local_mac_addresses,
     clear_container,
     show_message_dialog,
     show_confirmation_dialog,
 )
-from config import load_routers, save_routers
+from .config import load_routers, save_routers, CONFIG_FILE
 
 
 class RouterManager(Adw.ApplicationWindow):
@@ -33,11 +31,26 @@ class RouterManager(Adw.ApplicationWindow):
         self.main_window.set_max_sidebar_width(220)
         self.main_window.set_min_sidebar_width(220)
         self.set_content(self.main_window)
-        
+
         # Левая часть
+        about_item = Gio.MenuItem.new(_('About'), "app.about")
+
+        menu = Gio.Menu()
+        menu.append_item(about_item)
+
+        menu_button = Gtk.MenuButton(icon_name="open-menu-symbolic")
+        menu_button.set_menu_model(menu)
+
+        header_bar = Adw.HeaderBar()
+        header_bar.pack_end(menu_button)
+
+        action = Gio.SimpleAction.new("about", None)
+        action.connect("activate", self.on_about_action)
+        self.get_application().add_action(action)
+
         self.left = Adw.ToolbarView()
-        self.left.add_top_bar(Adw.HeaderBar())
-        
+        self.left.add_top_bar(header_bar)
+
         # Боковая панель
         self.side_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         self.left.set_content(self.side_panel)
@@ -45,10 +58,10 @@ class RouterManager(Adw.ApplicationWindow):
         self.sidebar = Adw.NavigationPage()
         self.sidebar.set_title("Менеджер роутеров")
         self.sidebar.set_child(self.left)
-        
+
         # Основная область контента
         self.main_content = Adw.ViewStack()
-        
+
         # Правая часть
         self.right = Adw.ToolbarView()
         self.right.set_content(self.main_content)
@@ -62,7 +75,7 @@ class RouterManager(Adw.ApplicationWindow):
         # Разделение на боковую панель и основной контент
         self.main_window.set_sidebar(self.sidebar)
         self.main_window.set_content(self.main_box)
-        
+
         # Добавляем кнопки в боковую панель
         self.add_side_panel_buttons()
 
@@ -205,7 +218,7 @@ class RouterManager(Adw.ApplicationWindow):
                         self.router_combo.set_active(0)
                     else:
                         self.current_router = None
-                    save_routers(self.routers)
+                    save_routers(CONFIG_FILE, self.routers)
 
             show_confirmation_dialog(
                 self,
@@ -433,3 +446,17 @@ class RouterManager(Adw.ApplicationWindow):
     def on_add_peer_clicked(self, button):
         # Реализуйте функцию для добавления нового пира
         pass
+
+    def on_about_action(self, *args):
+        """Callback for the app.about action."""
+        about = Adw.AboutDialog(application_name='Keenetic Manager',
+                                application_icon='ru.toxblh.KeeneticManager',
+                                developer_name='Anton Palgunov (Toxblh)',
+                                version='0.1.0',
+                                developers=['Anton Palgunov (Toxblh)'],
+                                copyright='© 2024 Anton Palgunov (Toxblh)')
+        about.add_link("GitHub", "https://github.com/Toxblh/Keenetic-Manager")
+        about.add_link("Donate", "https://www.buymeacoffee.com/toxblh")
+        # Translators: Replace "translator-credits" with your name/username, and optionally an email or URL.
+        about.set_translator_credits(_('translator-credits'))
+        about.present(self.get_application().get_active_window())

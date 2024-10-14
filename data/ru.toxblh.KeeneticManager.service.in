@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=ru.toxblh.KeeneticManager
+Exec=@bindir@/keeneticmanager --gapplication-service

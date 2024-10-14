@@ -1,5 +1,3 @@
-# keenetic_router.py
-
 import requests
 import hashlib
 from requests.exceptions import RequestException

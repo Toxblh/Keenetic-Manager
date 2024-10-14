@@ -4,9 +4,9 @@ gi.require_version('Adw', '1')
 from gi.repository import Adw, Gtk
 
 import keyring
-from keenetic_router import KeeneticRouter
-from utils import show_message_dialog
-from config import save_routers
+from .keenetic_router import KeeneticRouter
+from .utils import show_message_dialog
+from .config import save_routers
 
 class AddEditRouterDialog(Adw.Window):
     def __init__(self, parent, title, router_info=None):
