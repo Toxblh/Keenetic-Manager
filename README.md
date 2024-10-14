@@ -1,5 +1,5 @@
+<img src="data/icons/hicolor/scalable/apps/ru.toxblh.KeeneticManager.svg" align="right" width="60" height="60">
 
-<img src="data/icons/hicolor/scalable/apps/ru.toxblh.KeeneticManager.svg" align="right" width="40" height="40">
 # Keenetic Manager 
 [![Github All Releases](https://img.shields.io/github/downloads/Toxblh/Keenetic-Manager/total.svg)](https://github.com/Toxblh/Keenetic-Manager/releases)
 
