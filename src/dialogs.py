@@ -24,22 +24,22 @@ class AddEditRouterDialog(Adw.Window):
         grid = Gtk.Grid(column_spacing=10, row_spacing=10)
         content_box.append(grid)
 
-        name_label = Gtk.Label(label="Название:")
+        name_label = Gtk.Label(label=_("Name:"))
         grid.attach(name_label, 0, 0, 1, 1)
         self.name_entry = Gtk.Entry()
         grid.attach(self.name_entry, 1, 0, 1, 1)
 
-        address_label = Gtk.Label(label="Адрес:")
+        address_label = Gtk.Label(label=_("Address:"))
         grid.attach(address_label, 0, 1, 1, 1)
         self.address_entry = Gtk.Entry()
         grid.attach(self.address_entry, 1, 1, 1, 1)
 
-        login_label = Gtk.Label(label="Логин:")
+        login_label = Gtk.Label(label=_("Login:"))
         grid.attach(login_label, 0, 2, 1, 1)
         self.login_entry = Gtk.Entry()
         grid.attach(self.login_entry, 1, 2, 1, 1)
 
-        password_label = Gtk.Label(label="Пароль:")
+        password_label = Gtk.Label(label=_("Password:"))
         grid.attach(password_label, 0, 3, 1, 1)
         self.password_entry = Gtk.Entry()
         self.password_entry.set_visibility(False)
@@ -49,11 +49,11 @@ class AddEditRouterDialog(Adw.Window):
         button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         content_box.append(button_box)
 
-        cancel_button = Gtk.Button(label="Отмена")
+        cancel_button = Gtk.Button(label=_("Cancel"))
         cancel_button.connect("clicked", self.on_cancel_clicked)
         button_box.append(cancel_button)
 
-        ok_button = Gtk.Button(label="Сохранить")
+        ok_button = Gtk.Button(label=_("Save"))
         ok_button.connect("clicked", self.on_ok_clicked)
         button_box.append(ok_button)
 
@@ -78,7 +78,7 @@ class AddEditRouterDialog(Adw.Window):
         password = self.password_entry.get_text()
 
         if not name or not address or not login or not password:
-            show_message_dialog(self.parent, "Пожалуйста, заполните все поля.")
+            show_message_dialog(self.parent, _("Please fill in all fields."))
             return
 
         # Проверяем, не существует ли роутер с таким именем
@@ -86,7 +86,7 @@ class AddEditRouterDialog(Adw.Window):
         if self.router_info:
             # Редактирование
             if existing_router and existing_router != self.router_info:
-                show_message_dialog(self.parent, "Роутер с таким именем уже существует.")
+                show_message_dialog(self.parent, _("A router with this name already exists."))
                 return
             # Обновляем информацию о роутере
             self.router_info['name'] = name
@@ -97,7 +97,7 @@ class AddEditRouterDialog(Adw.Window):
         else:
             # Добавление нового роутера
             if existing_router:
-                show_message_dialog(self.parent, "Роутер с таким именем уже существует.")
+                show_message_dialog(self.parent, _("A router with this name already exists."))
                 return
             router_info = {
                 'name': name,

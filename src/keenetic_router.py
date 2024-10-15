@@ -46,16 +46,16 @@ class KeeneticRouter:
                 if auth_response.status_code == 200:
                     return True
                 else:
-                    print("Ошибка аутентификации.")
+                    print(_("Authentication error."))
                     return False
             elif initial_response.status_code == 200:
                 # Уже аутентифицированы
                 return True
             else:
-                print("Неизвестная ошибка при попытке аутентификации.")
+                print(_("Unknown error during authentication attempt."))
                 return False
         except RequestException as e:
-            print(f"Ошибка соединения с роутером {self.name}: {e}")
+            print(_("Connection error with router {name}: {error}").format(name=self.name, error=e))
             return False
 
     def keen_request(self, endpoint, data=None):
@@ -67,7 +67,7 @@ class KeeneticRouter:
                 response = self.session.get(url, timeout=5)
             return response
         except RequestException as e:
-            print(f"Ошибка запроса к роутеру {self.name}: {e}")
+            print(_("Request error with router {name}: {error}").format(name=self.name, error=e))
             return None
 
     def get_policies(self):
@@ -79,7 +79,7 @@ class KeeneticRouter:
             policies = response.json()
             return policies
         else:
-            print("Ошибка получения политик.")
+            print(_("Error retrieving policies."))
             return {}
 
     def get_online_clients(self):
@@ -91,7 +91,7 @@ class KeeneticRouter:
         clients_response = self.keen_request(clients_endpoint)
 
         if not clients_response or clients_response.status_code != 200:
-            print("Ошибка получения списка клиентов.")
+            print(_("Error retrieving client list."))
             return []
 
         clients_data = clients_response.json()
@@ -154,7 +154,7 @@ class KeeneticRouter:
             # Можно дополнительно проверить ответ
             return True
         else:
-            print("Ошибка применения политики к клиенту.")
+            print(_("Error applying policy to client."))
             return False
 
     def apply_default_policy_to_client(self, mac):
@@ -169,5 +169,5 @@ class KeeneticRouter:
             wg_data = response.json()
             return wg_data
         else:
-            print("Ошибка получения настроек WireGuard.")
+            print(_("Error retrieving WireGuard settings."))
             return {}

@@ -13,7 +13,7 @@ def load_routers():
                 routers = json.load(f)
                 return routers
         except Exception as e:
-            print(f"Ошибка загрузки роутеров: {e}")
+            print(_("Error loading routers: {e}").format(e=e))
             return []
     else:
         return []
@@ -23,4 +23,4 @@ def save_routers(routers):
         with open(CONFIG_FILE, 'w') as f:
             json.dump(routers, f)
     except Exception as e:
-        print(f"Ошибка сохранения роутеров: {e}")
+        print(_("Error saving routers: {e}").format(e=e))

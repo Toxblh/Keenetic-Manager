@@ -19,7 +19,7 @@ class RouterManager(Adw.ApplicationWindow):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.set_title("Менеджер роутеров")
+        self.set_title(_("Router Manager"))
         self.set_default_size(800, 600)
 
         # Список роутеров
@@ -56,7 +56,7 @@ class RouterManager(Adw.ApplicationWindow):
         self.left.set_content(self.side_panel)
 
         self.sidebar = Adw.NavigationPage()
-        self.sidebar.set_title("Менеджер роутеров")
+        self.sidebar.set_title(_("Router Manager"))
         self.sidebar.set_child(self.left)
 
         # Основная область контента
@@ -110,32 +110,32 @@ class RouterManager(Adw.ApplicationWindow):
 
         # Кнопка добавления роутера
         add_router_button = Gtk.Button.new_from_icon_name("list-add-symbolic")
-        add_router_button.set_tooltip_text("Добавить роутер")
+        add_router_button.set_tooltip_text(_("Add Router"))
         add_router_button.connect("clicked", self.on_add_router_clicked)
         header_bar.pack_end(add_router_button)
 
         # Кнопка редактирования роутера
         edit_router_button = Gtk.Button.new_from_icon_name("document-edit-symbolic")
-        edit_router_button.set_tooltip_text("Редактировать роутер")
+        edit_router_button.set_tooltip_text(_("Edit Router"))
         edit_router_button.connect("clicked", self.on_edit_router_clicked)
         header_bar.pack_end(edit_router_button)
 
         # Кнопка удаления роутера
         delete_router_button = Gtk.Button.new_from_icon_name("user-trash-symbolic")
-        delete_router_button.set_tooltip_text("Удалить роутер")
+        delete_router_button.set_tooltip_text(_("Delete Router"))
         delete_router_button.connect("clicked", self.on_delete_router_clicked)
         header_bar.pack_end(delete_router_button)
 
     def add_side_panel_buttons(self):
         # Кнопка VPN
-        vpn_button = Gtk.Button(label="VPN")
+        vpn_button = Gtk.Button(label=_("VPN"))
         vpn_button.connect("clicked", self.on_vpn_button_clicked)
         vpn_button.set_margin_start(10)
         vpn_button.set_margin_end(10)
         self.side_panel.append(vpn_button)
 
         # Кнопка Онлайн клиенты
-        clients_button = Gtk.Button(label="Клиенты онлайн")
+        clients_button = Gtk.Button(label=_("Online Clients"))
         clients_button.connect("clicked", self.on_clients_button_clicked)
         clients_button.set_margin_start(10)
         clients_button.set_margin_end(10)
@@ -154,20 +154,20 @@ class RouterManager(Adw.ApplicationWindow):
     def add_main_content_pages(self):
         # Страница VPN
         self.vpn_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        self.main_content.add_titled(self.vpn_page, "vpn", "VPN")
+        self.main_content.add_titled(self.vpn_page, "vpn", _("VPN"))
 
         # Страница клиентов
         self.clients_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        self.main_content.add_titled(self.clients_page, "clients", "Клиенты онлайн")
+        self.main_content.add_titled(self.clients_page, "clients", _("Online Clients"))
 
         # Страница быстрых настроек
         self.settings_page = Gtk.Label(label="Страница быстрых настроек")
-        self.main_content.add_titled(self.settings_page, "settings", "Быстрые настройки")
+        self.main_content.add_titled(self.settings_page, "settings", _("Quick Settings"))
 
         # Страница настроек VPN сервера
         self.vpn_server_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.main_content.add_titled(
-            self.vpn_server_page, "vpn_server", "Настройки VPN сервера"
+            self.vpn_server_page, "vpn_server", _("VPN Server Settings")
         )
 
     def on_router_changed(self, combo):
@@ -184,11 +184,11 @@ class RouterManager(Adw.ApplicationWindow):
                     password,
                     router_info["name"],
                 )
-                print(f"Выбран роутер: {router_info['name']}")
+                print(_("Selected router: {router_name}").format(router_name=router_info['name']))
 
     def on_add_router_clicked(self, button):
         # Диалог для добавления роутера
-        dialog = AddEditRouterDialog(self, "Добавить роутер")
+        dialog = AddEditRouterDialog(self, _("Add Router"))
         dialog.present()
 
     def on_edit_router_clicked(self, button):
@@ -197,10 +197,10 @@ class RouterManager(Adw.ApplicationWindow):
         if router_name:
             router_info = next((r for r in self.routers if r["name"] == router_name), None)
             if router_info:
-                dialog = AddEditRouterDialog(self, "Редактировать роутер", router_info)
+                dialog = AddEditRouterDialog(self, _("Edit Router"), router_info)
                 dialog.present()
         else:
-            show_message_dialog(self, "Пожалуйста, выберите роутер для редактирования.")
+            show_message_dialog(self, _("Please select a router to edit."))
 
     def on_delete_router_clicked(self, button):
         # Удаление выбранного роутера
@@ -222,11 +222,11 @@ class RouterManager(Adw.ApplicationWindow):
 
             show_confirmation_dialog(
                 self,
-                f"Вы уверены, что хотите удалить роутер '{router_name}'?",
+                _("Are you sure you want to delete the router '{router_name}'?").format(router_name=router_name),
                 on_dialog_response,
             )
         else:
-            show_message_dialog(self, "Пожалуйста, выберите роутер для удаления.")
+            show_message_dialog(self, _("Please select a router to delete."))
 
     def on_vpn_button_clicked(self, button):
         self.main_content.set_visible_child_name("vpn")
@@ -248,7 +248,7 @@ class RouterManager(Adw.ApplicationWindow):
         clear_container(self.vpn_page)
 
         if not self.current_router:
-            label = Gtk.Label(label="Пожалуйста, выберите роутер.")
+            label = Gtk.Label(label=_("Please select a router."))
             self.vpn_page.append(label)
             return
 
@@ -257,7 +257,7 @@ class RouterManager(Adw.ApplicationWindow):
         policies = self.current_router.get_policies()
 
         if not online_clients:
-            label = Gtk.Label(label="Не удалось получить список клиентов.")
+            label = Gtk.Label(label=_("Failed to retrieve the list of clients."))
             self.vpn_page.append(label)
             return
 
@@ -305,7 +305,7 @@ class RouterManager(Adw.ApplicationWindow):
             # name_text = f"{client_name} ({client_mac})"
             name_text = f"{client_name}"
             if is_current_pc:
-                name_text += " [Это вы]"
+                name_text += _(" [This is you]")
             if client.get("deny", True):
                 name_text += " (x)"
             name_label = Gtk.Label(label=name_text)
@@ -313,7 +313,7 @@ class RouterManager(Adw.ApplicationWindow):
             grid.attach(name_label, 0, row_idx, 1, 1)
 
             # Кнопка "По умолчанию"
-            default_button = Gtk.Button(label="По умолчанию")
+            default_button = Gtk.Button(label=_("Default"))
             if not client_policy:
                 default_button.get_style_context().add_class("suggested-action")
             default_button.connect("clicked", self.on_default_policy_clicked, client_mac)
@@ -331,26 +331,26 @@ class RouterManager(Adw.ApplicationWindow):
 
     def on_default_policy_clicked(self, button, client_mac):
         if self.current_router.apply_default_policy_to_client(client_mac):
-            print(f"Политика по умолчанию применена к клиенту {client_mac}")
+            print(_("Default policy applied to client {client_mac}").format(client_mac=client_mac))
             # Обновляем список клиентов после применения политики
             self.show_vpn_clients()
         else:
-            print(f"Не удалось применить политику по умолчанию к клиенту {client_mac}")
+            print(_("Failed to apply the default policy to client {client_mac}").format(client_mac=client_mac))
 
     def on_policy_button_clicked(self, button, client_mac, policy_name):
         if self.current_router.apply_policy_to_client(client_mac, policy_name):
-            print(f"Политика {policy_name} применена к клиенту {client_mac}")
+            print(_("Policy {policy_name} applied to client {client_mac}").format(policy_name=policy_name, client_mac=client_mac))
             # Обновляем список клиентов после применения политики
             self.show_vpn_clients()
         else:
-            print(f"Не удалось применить политику {policy_name} к клиенту {client_mac}")
+            print(_("Failed to apply policy {policy_name} to client {client_mac}").format(policy_name=policy_name, client_mac=client_mac))
 
     def show_online_clients(self):
         # Очистка предыдущего контента
         clear_container(self.clients_page)
 
         if not self.current_router:
-            label = Gtk.Label(label="Пожалуйста, выберите роутер.")
+            label = Gtk.Label(label=_("Please select a router."))
             self.clients_page.append(label)
             return
 
@@ -358,7 +358,7 @@ class RouterManager(Adw.ApplicationWindow):
         online_clients = self.current_router.get_online_clients()
 
         if not online_clients:
-            label = Gtk.Label(label="Не удалось получить список клиентов.")
+            label = Gtk.Label(label=_("Failed to retrieve the list of clients."))
             self.clients_page.append(label)
             return
 
@@ -394,7 +394,7 @@ class RouterManager(Adw.ApplicationWindow):
         clear_container(self.vpn_server_page)
 
         if not self.current_router:
-            label = Gtk.Label(label="Пожалуйста, выберите роутер.")
+            label = Gtk.Label(label=_("Please select a router."))
             self.vpn_server_page.append(label)
             return
 
@@ -402,7 +402,7 @@ class RouterManager(Adw.ApplicationWindow):
         wg_data = self.current_router.get_wireguard_peers()
 
         if not wg_data:
-            label = Gtk.Label(label="Не удалось получить настройки VPN сервера.")
+            label = Gtk.Label(label=_("Failed to retrieve VPN server settings."))
             self.vpn_server_page.append(label)
             return
 
@@ -413,25 +413,25 @@ class RouterManager(Adw.ApplicationWindow):
                     hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
                     self.vpn_server_page.append(hbox)
 
-                    peer_label = Gtk.Label(label=f"Peer: {peer_name}", xalign=0)
+                    peer_label = Gtk.Label(label=_("Peer: {peer_name}").format(peer_name=peer_name), xalign=0)
                     hbox.append(peer_label)
 
                     # Кнопка для загрузки конфигурации
-                    config_button = Gtk.Button(label="Загрузить конфигурацию")
+                    config_button = Gtk.Button(label=_("Download Configuration"))
                     config_button.connect(
                         "clicked", self.on_download_config_clicked, interface_name, peer_name
                     )
                     hbox.append(config_button)
 
                     # Кнопка для отображения QR-кода
-                    qr_button = Gtk.Button(label="Показать QR-код")
+                    qr_button = Gtk.Button(label=_("Show QR Code"))
                     qr_button.connect(
                         "clicked", self.on_show_qr_clicked, interface_name, peer_name
                     )
                     hbox.append(qr_button)
 
         # Кнопка для добавления нового пира
-        add_peer_button = Gtk.Button(label="Добавить пира")
+        add_peer_button = Gtk.Button(label=_("Add Peer"))
         add_peer_button.connect("clicked", self.on_add_peer_clicked)
         self.vpn_server_page.append(add_peer_button)
 
@@ -449,12 +449,14 @@ class RouterManager(Adw.ApplicationWindow):
 
     def on_about_action(self, *args):
         """Callback for the app.about action."""
-        about = Adw.AboutDialog(application_name='Keenetic Manager',
-                                application_icon='ru.toxblh.KeeneticManager',
-                                developer_name='Anton Palgunov (Toxblh)',
-                                version='0.1.0',
-                                developers=['Anton Palgunov (Toxblh)'],
-                                copyright='© 2024 Anton Palgunov (Toxblh)')
+        about = Adw.AboutDialog(
+            application_name=_('Keenetic Manager'),
+            application_icon='ru.toxblh.KeeneticManager',
+            developer_name=_('Anton Palgunov (Toxblh)'),
+            version='0.1.0',
+            developers=[_('Anton Palgunov (Toxblh)')],
+            copyright=_('© 2024 Anton Palgunov (Toxblh)')
+        )
         about.add_link("GitHub", "https://github.com/Toxblh/Keenetic-Manager")
         about.add_link("Donate", "https://toxblh.ru/support")
         # Translators: Replace "translator-credits" with your name/username, and optionally an email or URL.
