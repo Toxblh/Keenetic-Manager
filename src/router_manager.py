@@ -456,7 +456,7 @@ class RouterManager(Adw.ApplicationWindow):
                                 developers=['Anton Palgunov (Toxblh)'],
                                 copyright='© 2024 Anton Palgunov (Toxblh)')
         about.add_link("GitHub", "https://github.com/Toxblh/Keenetic-Manager")
-        about.add_link("Donate", "https://www.buymeacoffee.com/toxblh")
+        about.add_link("Donate", "https://toxblh.ru/support")
         # Translators: Replace "translator-credits" with your name/username, and optionally an email or URL.
         about.set_translator_credits(_('translator-credits'))
         about.present(self.get_application().get_active_window())
