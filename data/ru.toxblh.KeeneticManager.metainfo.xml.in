@@ -58,7 +58,7 @@
   </screenshots>
 
   <releases>
-    <release version="1.0.1" date="2024-09-25">
+    <release version="0.1.0" date="2024-09-25">
       <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.1.0</url>
       <description translate="no">
         <p>First release</p>
@@ -67,6 +67,15 @@
         </ul>
       </description>
     </release>
+       <release version="0.2.0" date="2024-10-15">
+      <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.2.0</url>
+      <description translate="no">
+        <p>Main release</p>
+        <ul>
+          <li>Publishing to Flathub</li>
+        </ul>
+      </description>
+    </release> 
   </releases>
 
 </component>
