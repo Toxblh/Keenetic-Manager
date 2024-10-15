@@ -29,7 +29,7 @@
   <!-- URLs of this type should point to a webpage showing information on how to donate to the described software project -->
   <url type="donation">https://toxblh.ru/support</url>
   <!--This could for example be an HTTPS URL to an online form or a page describing how to contact the developer -->
-  <url type="contact">https://toxblh.com/contacts</url>
+  <url type="contact">https://toxblh.ru/contacts</url>
   <!--URLs of this type should point to a webpage showing information on how to contribute to the described software project -->
   <url type="contribute">https://github.com/Toxblh/Keenetic-Manager</url>
 

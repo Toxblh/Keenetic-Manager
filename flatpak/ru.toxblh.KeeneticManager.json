@@ -19,7 +19,6 @@
         "--socket=wayland",
         "--device=dri",
         "--filesystem=xdg-pictures",
-        "--talk-name=org.freedesktop.Notifications",
         "--talk-name=org.freedesktop.secrets",
         "--talk-name=org.gnome.SettingsDaemon.Color"
     ],
@@ -53,7 +52,8 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "https://github.com/Toxblh/Keenetic-Manager"
+                    "url" : "https://github.com/Toxblh/Keenetic-Manager",
+                    "tag": "v0.1.0"
                 }
             ]
         }
