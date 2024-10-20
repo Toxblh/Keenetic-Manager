@@ -18,7 +18,6 @@
         "--socket=fallback-x11",
         "--socket=wayland",
         "--device=dri",
-        "--filesystem=xdg-pictures",
         "--talk-name=org.freedesktop.secrets",
         "--talk-name=org.gnome.SettingsDaemon.Color"
     ],
