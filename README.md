@@ -1,9 +1,10 @@
 <img src="data/icons/hicolor/scalable/apps/ru.toxblh.KeeneticManager.svg" align="right" width="60" height="60">
 
 # Keenetic Manager 
-[![Github All Releases](https://img.shields.io/github/downloads/Toxblh/Keenetic-Manager/total.svg)](https://github.com/Toxblh/Keenetic-Manager/releases)
 
 <img src="./screenshots/shot.png" alt="Keenetic Manager" width="800">
+
+<a href='https://flathub.org/apps/ru.toxblh.KeeneticManager'><img width='240' alt='Download on Flathub' src='https://flathub.org/api/badge?locale=en'/></a>
 
 ## Установка
 
