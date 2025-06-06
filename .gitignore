@@ -12,4 +12,7 @@ flatpak/*Devel*
 .flatpak/
 .flatpak-builder/
 .safety-policy.yml
-.vscode
+.vscode/settings.json
+build/
+dist/
+routers.json
