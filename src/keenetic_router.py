@@ -102,7 +102,7 @@ class KeeneticRouter:
                 "name": client.get("name", "Unknown"),
                 "ip": client.get("ip", "N/A"),
                 "mac": mac,
-                "online": client.get("online", False),
+                "data": client,
                 "policy": None,  # Мы заполним это позже
             }
 

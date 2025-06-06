@@ -34,6 +34,7 @@ keeneticmanager_sources = [
   'router_manager_app.py',
   'router_manager.py',
   'utils.py',
+  'ui.py',
   'config.py',
 ]
 

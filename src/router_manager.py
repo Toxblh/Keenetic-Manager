@@ -1,4 +1,6 @@
 import gi
+
+from .ui import create_client_row
 gi.require_version('Adw', '1')
 gi.require_version('Gtk', '4.0')
 from gi.repository import Adw, Gtk, Gio
@@ -300,17 +302,26 @@ class RouterManager(Adw.ApplicationWindow):
 
             # Проверяем, является ли клиент текущим компьютером
             is_current_pc = client_mac in local_macs
+            is_deny = client.get("deny", True)
 
             # Отображаем имя клиента и его MAC-адрес
             # name_text = f"{client_name} ({client_mac})"
             name_text = f"{client_name}"
             if is_current_pc:
                 name_text += _(" [This is you]")
-            if client.get("deny", True):
+            if is_deny:
                 name_text += " (x)"
             name_label = Gtk.Label(label=name_text)
             name_label.set_xalign(0)
             grid.attach(name_label, 0, row_idx, 1, 1)
+
+
+            toggleGroup = Adw.ToggleGroup()
+            toggleGroup.set_css_classes(["round"])
+
+            toggleOption = Adw.Toggle(label="Default", name="Default")
+            toggleGroup.add(toggleOption)
+
 
             # Кнопка "По умолчанию"
             default_button = Gtk.Button(label=_("Default"))
@@ -328,6 +339,11 @@ class RouterManager(Adw.ApplicationWindow):
                     "clicked", self.on_policy_button_clicked, client_mac, policy_name
                 )
                 grid.attach(policy_button, idx + 2, row_idx, 1, 1)
+
+                toggleOption = Adw.Toggle(label=policy_desc, name=policy_name, icon_name="network-vpn-symbolic", tooltip="Apply {policy_name} policy".format(policy_name=policy_name))
+                toggleGroup.add(toggleOption)
+
+            grid.attach(toggleGroup, idx + 3, row_idx, 1, 1)
 
     def on_default_policy_clicked(self, button, client_mac):
         if self.current_router.apply_default_policy_to_client(client_mac):
@@ -375,19 +391,18 @@ class RouterManager(Adw.ApplicationWindow):
         listbox = Gtk.ListBox()
         scrolled_window.set_child(listbox)
 
-        for client in online_clients:
-            row = Gtk.ListBoxRow()
-            hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-            row.set_child(hbox)
+        grid = Gtk.Grid(column_spacing=10, row_spacing=10)
+        grid.set_column_homogeneous(False)
+        grid.set_hexpand(True)
+        grid.set_vexpand(False)
+        listbox.append(grid)
 
-            name = client.get("name", "Unknown")
-            ip = client.get("ip", "N/A")
-            mac = client.get("mac", "N/A")
+        for idx, (client) in enumerate(online_clients):
+            online =  True if client.get("data", {}).get("link") == "up" else False
 
-            label = Gtk.Label(label=f"{name} - IP: {ip} - MAC: {mac}", xalign=0)
-            hbox.append(label)
+            if online:
+                create_client_row(client, grid, idx)
 
-            listbox.append(row)
 
     def show_vpn_server_settings(self):
         # Очистка предыдущего контента
