@@ -12,7 +12,7 @@
 git clone https://github.com/Toxblh/Keenetic-Manager.git
 cd Keenetic-Manager
 make setup
-make installz
+make install
 ```
 
 ## Использование без установки
