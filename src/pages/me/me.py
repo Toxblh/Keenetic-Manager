@@ -30,6 +30,14 @@ def show_me(self):
     except AttributeError:
         def _(s): return s
 
+    # Загружаем UI из GtkBuilder
+    builder = Gtk.Builder()
+    builder.add_from_resource("/ru/toxblh/KeeneticManager/pages/me/me_page.ui")
+    me_page_root = builder.get_object("me_page_root")
+    flowbox = builder.get_object("flowbox_interfaces")
+    placeholder_label = builder.get_object("placeholder_label")
+    self.me_page.append(me_page_root)
+
     # Получаем локальные MAC-адреса и интерфейсы
     macs = []
     for interface in netifaces.interfaces():
@@ -61,12 +69,6 @@ def show_me(self):
     policies = self.current_router.get_policies() if getattr(self, 'current_router', None) else {}
     policy_names = [(policy_name, policy_info.get("description", policy_name)) for policy_name, policy_info in policies.items()]
 
-    # Сетка для интерфейсов -> теперь FlowBox для карточек
-    flowbox = Gtk.FlowBox()
-    flowbox.set_max_children_per_line(3)
-    flowbox.set_selection_mode(Gtk.SelectionMode.NONE)
-    self.me_page.append(flowbox)
-
     def get_ip(interface):
         addrs = netifaces.ifaddresses(interface)
         if netifaces.AF_INET in addrs:
@@ -74,7 +76,6 @@ def show_me(self):
         return 'N/A'
 
     card_widgets = []
-    usage_stats = {}
     usage_window = 5  # секунд для анализа активности
     for idx, (interface, mac, iface_type) in enumerate(macs):
         client_name = None
@@ -87,7 +88,7 @@ def show_me(self):
                     client_name = c.get('name', interface)
                     client_policy = c.get('policy', None)
                     state = c.get("data", {}).get("link") == "up" or c.get("data", {}).get("mws", {}).get("link") == "up"
-                    online =  True if state else False
+                    online = True if state else False
                     client_found = True
                     break
             if not client_found:
@@ -95,39 +96,21 @@ def show_me(self):
         else:
             client_name = interface
             client_policy = None
-        # Карточка
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        card.set_css_classes(["card", "boxed"])
-        card.set_margin_top(6)
-        card.set_margin_bottom(6)
-        card.set_margin_start(6)
-        card.set_margin_end(6)
-        card.set_vexpand(False)
-        card.set_hexpand(False)
-        card.set_spacing(10)
 
-        active_grid = Gtk.Grid(column_spacing=6, row_spacing=4)
-        active_grid.set_column_homogeneous(False)
-        active_grid.set_margin_top(15)
-        active_grid.set_margin_start(20)
-        active_grid.set_margin_end(20)
-        active_grid.set_hexpand(True)
-        card.append(active_grid)
+        # Карточка через шаблон из UI
+        card_builder = Gtk.Builder()
+        card_builder.add_from_resource("/ru/toxblh/KeeneticManager/pages/me/me_card.ui")
+        card = card_builder.get_object("card")
 
-        # Заголовок — имя клиента
-        header_label = Gtk.Label()
+        header_label = card_builder.get_object("header_label")
+        active_grid = card_builder.get_object("active_grid")
+        info_grid = card_builder.get_object("info_grid")
+        traffic_label = card_builder.get_object("traffic_label")
+        active_label = card_builder.get_object("active_label")
+        toggle_group = card_builder.get_object("toggle_group")
+
         header_label.set_markup(f'<b>{client_name}</b>')
-        header_label.set_halign(Gtk.Align.START)
 
-        active_grid.attach(header_label, 0, 0, 1, 1)
-        # card.append(header_label)
-
-        # Таблица для свойств
-        info_grid = Gtk.Grid(column_spacing=6, row_spacing=4)
-        info_grid.set_column_homogeneous(False)
-        info_grid.set_margin_top(5)
-        info_grid.set_margin_start(20)
-        card.append(info_grid)
         def add_info_row(row, label_text, value_text, markup=False):
             label = Gtk.Label(label=label_text, xalign=0)
             label.get_style_context().add_class("dim-label")
@@ -145,13 +128,11 @@ def show_me(self):
         row = 0
         add_info_row(row, "Name:", interface); row += 1
         add_info_row(row, "Type:", iface_type); row += 1
-        # State: online/offline по данным роутера
         state_markup = '<span foreground="green">●</span> Online' if online else '<span foreground="gray">●</span> Offline'
         state_label = add_info_row(row, "State:", state_markup, markup=True); row += 1
         ip = get_ip(interface)
         add_info_row(row, "IP:", ip); row += 1
         add_info_row(row, "MAC:", mac); row += 1
-        # Определяем человекочитаемое название политики
         policy_human = None
         for pname, pdesc in policy_names:
             if client_policy == pname:
@@ -164,34 +145,19 @@ def show_me(self):
                 policy_human = str(client_policy)
         policy_label = add_info_row(row, "Policy:", policy_human); row += 1
 
-
-        # Трафик
-        traffic_label = Gtk.Label(label="↓ 0 KB/s  ↑ 0 KB/s")
-        traffic_label.set_halign(Gtk.Align.END)
-        traffic_label.set_hexpand(True)
-        active_grid.attach(traffic_label, 1, 0, 1, 1)
-
-        # Активность
-        active_label = Gtk.Label(label="")
-        active_label.set_halign(Gtk.Align.END)
-        active_label.set_hexpand(True)
-        active_grid.attach(active_label, 2, 0, 1, 1)
+        traffic_label.set_text("↓ 0 KB/s  ↑ 0 KB/s")
+        active_label.set_text("")
 
         # Кнопки VPN политик
-        toggleGroup = Adw.ToggleGroup()
-        toggleGroup.set_margin_top(5)
-        toggleGroup.set_margin_start(20)
-        toggleGroup.set_margin_end(20)
-        toggleGroup.set_margin_bottom(20)
-        toggleGroup.set_css_classes(["round"])
+        toggle_group.remove_all()
         toggleOption = Adw.Toggle(label="Default", name="Default")
-        toggleGroup.add(toggleOption)
+        toggle_group.add(toggleOption)
+
         for pidx, (policy_name, policy_desc) in enumerate(policy_names):
             toggleOption = Adw.Toggle(label=policy_desc, name=policy_name, tooltip=f"Apply {policy_name} policy")
-            toggleGroup.add(toggleOption)
+            toggle_group.add(toggleOption)
             if client_policy == policy_name:
-                toggleGroup.set_active(pidx + 1)
-        card.append(toggleGroup)
+                toggle_group.set_active(pidx + 1)
         def on_policy_change(toggle_group, __, mac=mac, policy_label=policy_label, self=self):
             index = toggle_group.get_active()
             name = toggle_group.get_active_name()
@@ -206,13 +172,10 @@ def show_me(self):
                         break
                 else:
                     policy_label.set_text(name)
-        toggleGroup.connect("notify::active", on_policy_change)
-
+        toggle_group.connect("notify::active", on_policy_change)
         if not online:
-            # Если клиент оффлайн, отключаем кнопки политик
-            toggleGroup.set_sensitive(False)
+            toggle_group.set_sensitive(False)
 
-        # Для обновления
         card_widgets.append({
             'interface': interface,
             'state_label': state_label,
@@ -222,14 +185,10 @@ def show_me(self):
         })
         flowbox.append(card)
 
-    # Если ни одной карточки не показано, выводим плейсхолдер
     if not card_widgets:
-        placeholder = Gtk.Label(label="В данный момент вы не в сети роутера, к которому подключились.")
-        placeholder.set_margin_top(40)
-        placeholder.set_margin_bottom(40)
-        placeholder.set_halign(Gtk.Align.CENTER)
-        placeholder.set_valign(Gtk.Align.CENTER)
-        self.me_page.append(placeholder)
+        placeholder_label.set_visible(True)
+    else:
+        placeholder_label.set_visible(False)
 
     def update_traffic():
         prev_stats = {}
@@ -242,12 +201,11 @@ def show_me(self):
                 tx_speed = max(tx - prev[1], 0)
                 prev_stats[interface] = (rx, tx)
                 w['traffic_label'].set_text(f"↓ {rx_speed/1024:.1f} KB/s  ↑ {tx_speed/1024:.1f} KB/s")
-                # --- накопление статистики активности ---
                 w['usage_history'].append(rx_speed + tx_speed)
                 if len(w['usage_history']) > usage_window:
                     w['usage_history'].pop(0)
                 avg_speed = sum(w['usage_history']) / max(len(w['usage_history']), 1)
-                if avg_speed > 1024 * 5:  # >5KB/s среднее за usage_window
+                if avg_speed > 1024 * 5:
                     w['active_label'].set_markup('<span foreground="limegreen">Active now</span>')
                 elif state == "up":
                     w['active_label'].set_markup('<span foreground="gray">Idle</span>')

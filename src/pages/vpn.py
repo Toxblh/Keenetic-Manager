@@ -106,7 +106,6 @@ def show_vpn_clients(self):
             toggleGroup.add(toggleOption)
 
             if client_policy == policy_name:
-                print(f"active_index {idx + 1}")
                 toggleGroup.set_active(idx + 1)
 
         grid.attach(toggleGroup, 2, row_idx, 1, 1)

@@ -36,11 +36,11 @@ keeneticmanager_sources = [
   'utils.py',
   'ui.py',
   'config.py',
-  'pages/me.py',
+  'pages/me/me.py',
   'pages/vpn.py',
   'pages/clients.py',
   'pages/wg_server.py',
-  'pages/settings.py',
+  'pages/settings.py'
 ]
 
 install_data(keeneticmanager_sources, install_dir: moduledir)

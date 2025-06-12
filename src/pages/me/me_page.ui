@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkBox" id="me_page_root">
+    <property name="orientation">vertical</property>
+    <child>
+      <object class="GtkFlowBox" id="flowbox_interfaces">
+        <property name="margin-top">6</property>
+        <property name="margin-start">6</property>
+        <property name="margin-bottom">6</property>
+        <property name="margin-end">6</property>
+        <property name="max-children-per-line">3</property>
+        <property name="selection-mode">none</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkLabel" id="placeholder_label">
+        <property name="label">В данный момент вы не в сети роутера, к которому подключились.</property>
+        <property name="margin-top">40</property>
+        <property name="margin-bottom">40</property>
+        <property name="halign">center</property>
+        <property name="valign">center</property>
+        <property name="visible">False</property>
+      </object>
+    </child>
+  </object>
+</interface>
