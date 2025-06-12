@@ -77,18 +77,21 @@ def show_me(self):
     usage_stats = {}
     usage_window = 5  # секунд для анализа активности
     for idx, (interface, mac, iface_type) in enumerate(macs):
-        # Получаем имя клиента с роутера по MAC
         client_name = None
+        client_found = False
+        online = False
         if hasattr(self, 'current_router') and self.current_router:
             clients = self.current_router.get_online_clients()
             for c in clients:
                 if c.get('mac', '').lower() == mac:
                     client_name = c.get('name', interface)
                     client_policy = c.get('policy', None)
+                    state = c.get("data", {}).get("link") == "up" or c.get("data", {}).get("mws", {}).get("link") == "up"
+                    online =  True if state else False
+                    client_found = True
                     break
-            else:
-                client_name = interface
-                client_policy = None
+            if not client_found:
+                continue
         else:
             client_name = interface
             client_policy = None
@@ -125,12 +128,16 @@ def show_me(self):
         info_grid.set_margin_top(5)
         info_grid.set_margin_start(20)
         card.append(info_grid)
-        def add_info_row(row, label_text, value_text):
+        def add_info_row(row, label_text, value_text, markup=False):
             label = Gtk.Label(label=label_text, xalign=0)
             label.get_style_context().add_class("dim-label")
             label.set_halign(Gtk.Align.START)
-            label.set_size_request(100, -1)  # Минимум 100px ширины
-            value = Gtk.Label(label=value_text, xalign=0)
+            label.set_size_request(100, -1)
+            if markup:
+                value = Gtk.Label()
+                value.set_markup(value_text)
+            else:
+                value = Gtk.Label(label=value_text, xalign=0)
             value.set_halign(Gtk.Align.START)
             info_grid.attach(label, 0, row, 1, 1)
             info_grid.attach(value, 1, row, 1, 1)
@@ -138,10 +145,12 @@ def show_me(self):
         row = 0
         add_info_row(row, "Name:", interface); row += 1
         add_info_row(row, "Type:", iface_type); row += 1
-        state_label = add_info_row(row, "State:", ""); row += 1
+        # State: online/offline по данным роутера
+        state_markup = '<span foreground="green">●</span> Online' if online else '<span foreground="gray">●</span> Offline'
+        state_label = add_info_row(row, "State:", state_markup, markup=True); row += 1
         ip = get_ip(interface)
         add_info_row(row, "IP:", ip); row += 1
-        add_info_row(row, "Mac:", mac); row += 1
+        add_info_row(row, "MAC:", mac); row += 1
         # Определяем человекочитаемое название политики
         policy_human = None
         for pname, pdesc in policy_names:
@@ -173,7 +182,7 @@ def show_me(self):
         toggleGroup.set_margin_top(5)
         toggleGroup.set_margin_start(20)
         toggleGroup.set_margin_end(20)
-        toggleGroup.set_margin_bottom(10)
+        toggleGroup.set_margin_bottom(20)
         toggleGroup.set_css_classes(["round"])
         toggleOption = Adw.Toggle(label="Default", name="Default")
         toggleGroup.add(toggleOption)
@@ -198,6 +207,11 @@ def show_me(self):
                 else:
                     policy_label.set_text(name)
         toggleGroup.connect("notify::active", on_policy_change)
+
+        if not online:
+            # Если клиент оффлайн, отключаем кнопки политик
+            toggleGroup.set_sensitive(False)
+
         # Для обновления
         card_widgets.append({
             'interface': interface,
@@ -207,6 +221,15 @@ def show_me(self):
             'usage_history': []
         })
         flowbox.append(card)
+
+    # Если ни одной карточки не показано, выводим плейсхолдер
+    if not card_widgets:
+        placeholder = Gtk.Label(label="В данный момент вы не в сети роутера, к которому подключились.")
+        placeholder.set_margin_top(40)
+        placeholder.set_margin_bottom(40)
+        placeholder.set_halign(Gtk.Align.CENTER)
+        placeholder.set_valign(Gtk.Align.CENTER)
+        self.me_page.append(placeholder)
 
     def update_traffic():
         prev_stats = {}
@@ -218,15 +241,13 @@ def show_me(self):
                 rx_speed = max(rx - prev[0], 0)
                 tx_speed = max(tx - prev[1], 0)
                 prev_stats[interface] = (rx, tx)
-                color = "green" if state == "up" else "red"
-                w['state_label'].set_markup(f'<span foreground="{color}">•</span> {state}')
                 w['traffic_label'].set_text(f"↓ {rx_speed/1024:.1f} KB/s  ↑ {tx_speed/1024:.1f} KB/s")
                 # --- накопление статистики активности ---
                 w['usage_history'].append(rx_speed + tx_speed)
                 if len(w['usage_history']) > usage_window:
                     w['usage_history'].pop(0)
                 avg_speed = sum(w['usage_history']) / max(len(w['usage_history']), 1)
-                if avg_speed > 1024 * 10:  # >10KB/s среднее за usage_window
+                if avg_speed > 1024 * 5:  # >5KB/s среднее за usage_window
                     w['active_label'].set_markup('<span foreground="limegreen">Active now</span>')
                 elif state == "up":
                     w['active_label'].set_markup('<span foreground="gray">Idle</span>')

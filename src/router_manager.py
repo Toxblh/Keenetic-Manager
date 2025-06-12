@@ -36,7 +36,7 @@ class RouterManager(Adw.ApplicationWindow):
         super().__init__(**kwargs)
 
         self.set_title(_("Keenetic Manager"))
-        self.set_default_size(800, 600)
+        self.set_default_size(1200, 600)
 
         # Список роутеров
         self.routers = []
@@ -47,11 +47,6 @@ class RouterManager(Adw.ApplicationWindow):
         self.main_window.set_max_sidebar_width(220)
         self.main_window.set_min_sidebar_width(220)
         self.set_content(self.main_window)
-
-        # condition = Adw.BreakpointCondition.parse('max-width: 400sp')
-        # breakpoint = Adw.Breakpoint.new(condition);
-        # breakpoint.add_setter(self.main_window, 'collapsed', True)
-        # self.add_breakpoint(breakpoint);
 
         # Левая часть
         about_item = Gio.MenuItem.new(_('About'), "app.about")
@@ -187,12 +182,12 @@ class RouterManager(Adw.ApplicationWindow):
             Pages.CLIENTS, _("Online Clients")))
 
         # Кнопка Настройки VPN сервера
-        self.side_panel.append(create_action_row(
-            Pages.VPN_SERVER, _("WireGurad Server")))
+        # self.side_panel.append(create_action_row(
+        #     Pages.VPN_SERVER, _("WireGurad Server")))
 
         # Кнопка Настройки
-        self.side_panel.append(create_action_row(
-            Pages.SETTINGS, _("Quick Settings")))
+        # self.side_panel.append(create_action_row(
+        #     Pages.SETTINGS, _("Quick Settings")))
 
     def add_main_content_pages(self):
         # Страница я

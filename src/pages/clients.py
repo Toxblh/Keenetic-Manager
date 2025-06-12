@@ -22,29 +22,13 @@ def show_online_clients(self):
             self.clients_page.append(label)
             return
 
-        uistring = """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <interface>
-              <object class="GtkScrolledWindow" id="scrolled_window">
-                <property name="vexpand">True</property>
-                <property name="min-content-height">400</property>
-                <property name="margin-start">10</property>
-                <property name="margin-end">10</property>
-              </object>
-            </interface>
-        """
-
-        scrolled_window = Gtk.Builder.new_from_string(uistring, -1).get_object("scrolled_window")
-
-        # scrolled_window = Gtk.Builder().add_from_file("some.ui").get_object("scrolled_window")
-
         # Создаем ScrolledWindow
-        #scrolled_window = Gtk.ScrolledWindow()
-        #scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        #scrolled_window.set_min_content_height(400)
-        #scrolled_window.set_margin_start(10)
-        #scrolled_window.set_margin_end(10)
-        #scrolled_window.set_vexpand(True)
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled_window.set_min_content_height(400)
+        scrolled_window.set_margin_start(10)
+        scrolled_window.set_margin_end(10)
+        scrolled_window.set_vexpand(True)
         self.clients_page.append(scrolled_window)
 
         # Отображение клиентов в списке
