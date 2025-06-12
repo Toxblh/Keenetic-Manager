@@ -1,7 +1,13 @@
 # ui.py
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Adw
+
+def create_action_row(name, title):
+        row = Adw.ActionRow()
+        row.set_title(title)
+        row.set_name(name)
+        return row
 
 def get_signal_icon_name(rssi):
     """Возвращает имя иконки по уровню сигнала RSSI."""
