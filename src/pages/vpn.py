@@ -35,16 +35,18 @@ def show_vpn_clients(self):
     # Получение MAC-адресов локальных интерфейсов
     local_macs = get_local_mac_addresses()
 
-    # Сначала сортируем клиентов по MAC-адресу
-    online_clients.sort(key=lambda client: client["mac"])
-
-    # Затем поднимаем текущий компьютер наверх
+    # Сначала сортируем клиентов: локальные, онлайн, остальные
+    def is_online(client):
+        data = client.get("data", {})
+        return data.get("link") == "up" or data.get("mws", {}).get("link") == "up"
     def client_sort_key(client):
-        if client["mac"] in local_macs:
-            return 0
+        mac = client.get("mac", "").lower()
+        if mac in local_macs:
+            return (0,)
+        elif is_online(client):
+            return (1, 0)
         else:
-            return 1
-
+            return (1, 1)
     online_clients.sort(key=client_sort_key)
 
     # Создаем ScrolledWindow
