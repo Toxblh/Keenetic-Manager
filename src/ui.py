@@ -26,101 +26,156 @@ def get_signal_icon_name(rssi):
     else:
         return "network-cellular-signal-weak-symbolic"
 
-def create_client_row(client, grid, idx):
+def get_client_data(client):
+    data = client.get("data", {})
+    mws = data.get("mws", {})
+    def pick(*keys, default=None):
+        for k in keys:
+            v = data.get(k)
+            if v is not None:
+                return v
+            v = mws.get(k)
+            if v is not None:
+                return v
+        return default
+    ap = pick("ap")
+    rssi = pick("rssi", default="N/A")
+    txrate = pick("txrate")
+    encryption = pick("security", default="N/A")
+    support = pick("_11", default="")
+    txss = pick("txss", default="N/A")
+    ht = pick("ht", default="N/A")
+    speed = data.get("speed")
+    port = data.get("port")
+    mode = pick("mode", default="N/A")
+    priority = data.get("priority", "N/A")
+    return ap, rssi, txrate, encryption, support, txss, ht, speed, port, mode, priority
+
+def get_wifi_ghz(ap):
+    if ap == "WifiMaster0/AccessPoint0":
+        return "2.4 GHz"
+    elif ap == "WifiMaster1/AccessPoint0":
+        return "5 GHz"
+    return ""
+
+def create_client_row(client):
     name = client.get("name")
     ip = client.get("ip")
     mac = client.get("mac", "N/A")
-    ap = client.get("data", {}).get("ap") or client.get("data", {}).get("mws", {}).get("ap")
-    rssi = client.get("data", {}).get("rssi") or client.get("data", {}).get("mws", {}).get("rssi", "N/A")
+    ap, rssi, txrate, encryption, support, txss, ht, speed, port, mode, priority = get_client_data(client)
     connection = "Wi-Fi" if ap else "Ethernet"
+    wifi_Ghz = get_wifi_ghz(ap)
+    COL_WIDTH, ICON_WIDTH, BTN_WIDTH = 160, 36, 48
 
-    # Определяем диапазон Wi-Fi по имени точки доступа
-    if ap == "WifiMaster0/AccessPoint0":
-        wifi_Ghz = "2.4 GHz"
-    elif ap == "WifiMaster1/AccessPoint0":
-        wifi_Ghz = "5 GHz"
-    else:
-        wifi_Ghz = ""
+    def make_label(label, xalign, halign, hexpand=False, dim=False):
+        l = Gtk.Label(label=label, xalign=xalign)
+        l.set_halign(halign)
+        if hexpand:
+            l.set_hexpand(True)
+        if dim:
+            l.get_style_context().add_class("dim-label")
+        return l
 
-    txrate = client.get("data", {}).get("txrate") or client.get("data", {}).get("mws", {}).get("txrate")
-    encryption = client.get("data", {}).get("security") or client.get("data", {}).get("mws", {}).get("security", "N/A")
-    support = client.get("data", {}).get("_11") or client.get("data", {}).get("mws", {}).get("_11", "")
-    txss = client.get("data", {}).get("txss") or client.get("data", {}).get("mws", {}).get("txss", "N/A")
-    ht = client.get("data", {}).get("ht") or client.get("data", {}).get("mws", {}).get("ht", "N/A")
-    speed = client.get("data", {}).get("speed")
-    port = client.get("data", {}).get("port")
-    mode = client.get("data", {}).get("mode") or client.get("data", {}).get("mws", {}).get("mode", "N/A")
-    priority = client.get("data", {}).get("priority", "N/A")
+    row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+    row_box.set_margin_top(4)
+    row_box.set_margin_bottom(4)
+    row_box.set_margin_start(4)
+    row_box.set_margin_end(4)
 
-
-    # 1. Имя и через кого (вертикально)
-    name_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-    name_label = Gtk.Label(label=name, xalign=0)
-    name_label.set_halign(Gtk.Align.START)
+    name_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    name_label = make_label(name, 0, Gtk.Align.START, hexpand=True)
+    name_box.set_hexpand(True)
+    name_box.set_halign(Gtk.Align.FILL)
     name_box.append(name_label)
+    row_box.append(name_box)
 
-    # router_label = Gtk.Label(label=f"Роутер: {client.get('router', 'Unknown')}", xalign=0)
-    # name_box.append(router_label)
-
-    grid.attach(name_box, 0, idx, 1, 1)
-
-    # 2. IP и MAC (вертикально)
-    net_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-    ip_label = Gtk.Label(label=ip, xalign=0)
-    ip_label.set_halign(Gtk.Align.START)
+    net_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    ip_label = make_label(ip, 1, Gtk.Align.END)
+    mac_label = make_label(mac, 1, Gtk.Align.END, dim=True)
     net_box.append(ip_label)
-
-    mac_label = Gtk.Label(label=mac, xalign=0)
-    mac_label.set_halign(Gtk.Align.START)
-    mac_label.get_style_context().add_class("dim-label")
     net_box.append(mac_label)
+    net_box.set_size_request(COL_WIDTH, -1)
+    net_box.set_halign(Gtk.Align.END)
+    row_box.append(net_box)
 
-    grid.attach(net_box, 1, idx, 1, 1)
+    net_box2 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    net_label = make_label("Домашняя сеть", 1, Gtk.Align.END)
+    wifi_label = make_label(f"Wi-Fi {wifi_Ghz}" if ap else "По проводу", 1, Gtk.Align.END, dim=True)
+    net_box2.append(net_label)
+    net_box2.append(wifi_label)
+    net_box2.set_size_request(COL_WIDTH, -1)
+    net_box2.set_halign(Gtk.Align.END)
+    row_box.append(net_box2)
 
-    # 3. Сеть и диапазон (вертикально)
-    net_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-    net_label = Gtk.Label(label="Домашняя сеть", xalign=0) # ToDo: Здесь нужно указать имя сети реальное
-    net_label.set_halign(Gtk.Align.START)
-    net_box.append(net_label)
-    if ap:
-        wifi_label = Gtk.Label(label=f"Wi-Fi {wifi_Ghz}", xalign=0)
-    else:
-        wifi_label = Gtk.Label(label="По проводу", xalign=0)
-    wifi_label.set_halign(Gtk.Align.START)
-    wifi_label.get_style_context().add_class("dim-label")
-    net_box.append(wifi_label)
-    grid.attach(net_box, 2, idx, 1, 1)
-
-    # 4. Иконка сигнала
     icon_name = get_signal_icon_name(rssi)
     signal_icon = Gtk.Image.new_from_icon_name(icon_name)
-    grid.attach(signal_icon, 3, idx, 1, 1)
+    signal_icon.set_halign(Gtk.Align.END)
+    icon_box = Gtk.Box()
+    icon_box.set_size_request(ICON_WIDTH, -1)
+    icon_box.set_halign(Gtk.Align.END)
+    icon_box.append(signal_icon)
+    row_box.append(icon_box)
 
-    # 5. Скорость и доп.инфо (вертикально)
-    speed_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-    if ap:
-        speed_label = Gtk.Label(label=f"{txrate} Мбит/с {encryption}", xalign=0)
-    else:
-        speed_label = Gtk.Label(label=f"{speed} Мбит/с", xalign=0)
-    speed_label.set_halign(Gtk.Align.START)
-    speed_box.append(speed_label)
-
+    speed_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    speed_label = make_label(f"{txrate} Мбит/с {encryption}" if ap else f"{speed} Мбит/с", 1, Gtk.Align.END)
     if isinstance(support, list):
         support_str = "/" + "/".join(str(x) for x in support)
     else:
         support_str = str(support)
-    if ap:
-        info_label = Gtk.Label(label=f"{mode}{support_str} {txss}х{txss} {ht} МГц", xalign=0)
-    else:
-        info_label = Gtk.Label(label=f"Порт {port}", xalign=0)
-    info_label.set_halign(Gtk.Align.START)
-    info_label.get_style_context().add_class("dim-label")
+    info_label = make_label(
+        f"{mode}{support_str} {txss}х{txss} {ht} МГц" if ap else f"Порт {port}",
+        1, Gtk.Align.END, dim=True)
+    speed_box.append(speed_label)
     speed_box.append(info_label)
-    grid.attach(speed_box, 4, idx, 1, 1)
+    speed_box.set_size_request(COL_WIDTH, -1)
+    speed_box.set_halign(Gtk.Align.END)
+    row_box.append(speed_box)
 
-    # 6. Кнопка с числом (например, 6)
     circle_button = Gtk.Button(label=str(priority))
     circle_button.set_sensitive(False)
-    circle_button.set_size_request(40, 32)
+    circle_button.set_size_request(BTN_WIDTH, 32)
     circle_button.get_style_context().add_class("suggested-action")
-    grid.attach(circle_button, 5, idx, 1, 1)
+    btn_box = Gtk.Box()
+    btn_box.set_size_request(BTN_WIDTH, -1)
+    btn_box.set_halign(Gtk.Align.END)
+    btn_box.append(circle_button)
+    row_box.append(btn_box)
+
+    widgets = {
+        'name_label': name_label,
+        'ip_label': ip_label,
+        'mac_label': mac_label,
+        'net_label': net_label,
+        'wifi_label': wifi_label,
+        'signal_icon': signal_icon,
+        'speed_label': speed_label,
+        'info_label': info_label,
+        'circle_button': circle_button,
+    }
+
+    def update_data(new_client):
+        name = new_client.get("name")
+        ip = new_client.get("ip")
+        mac = new_client.get("mac", "N/A")
+        ap, rssi, txrate, encryption, support, txss, ht, speed, port, mode, priority = get_client_data(new_client)
+        wifi_Ghz = get_wifi_ghz(ap)
+        widgets['name_label'].set_text(name)
+        widgets['ip_label'].set_text(ip)
+        widgets['mac_label'].set_text(mac)
+        widgets['net_label'].set_text("Домашняя сеть")
+        widgets['wifi_label'].set_text(f"Wi-Fi {wifi_Ghz}" if ap else "По проводу")
+        icon_name = get_signal_icon_name(rssi)
+        widgets['signal_icon'].set_from_icon_name(icon_name)
+        widgets['speed_label'].set_text(f"{txrate} Мбит/с {encryption}" if ap else f"{speed} Мбит/с")
+        if isinstance(support, list):
+            support_str = "/" + "/".join(str(x) for x in support)
+        else:
+            support_str = str(support)
+        widgets['info_label'].set_text(
+            f"{mode}{support_str} {txss}х{txss} {ht} МГц" if ap else f"Порт {port}")
+        widgets['circle_button'].set_label(str(priority))
+
+    listbox_row = Gtk.ListBoxRow()
+    listbox_row.set_child(row_box)
+    listbox_row.update_data = update_data
+    return listbox_row
