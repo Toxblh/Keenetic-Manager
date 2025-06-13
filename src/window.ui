@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+
+  <menu id="mainMenu">
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">About</attribute>
+        <attribute name="action">app.about</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Quit</attribute>
+        <attribute name="action">app.quit</attribute>
+      </item>
+    </section>
+  </menu>
+
+  <template class="RouterManagerWindow" parent="AdwApplicationWindow">
+    <property name="default-width">1200</property>
+    <property name="default-height">600</property>
+    <property name="width-request">420</property>
+    <property name="height-request">390</property>
+    <property name="title" translatable="yes">Keenetic Manager</property>
+    <property name="content">
+      <object class="AdwNavigationSplitView" id="main_window">
+        <property name="max-sidebar-width">220</property>
+        <property name="min-sidebar-width">220</property>
+        <property name="sidebar">
+          <object class="AdwNavigationPage" id="sidebar">
+            <property name="title">Keenetic Manager</property>
+            <property name="tag">menu</property>
+            <property name="child">
+              <object class="AdwToolbarView" id="left">
+                <child type="top">
+                  <object class="AdwHeaderBar" id="left_header_bar">
+                    <property name="show-title">true</property>
+                    <child type="end">
+                      <object class="GtkMenuButton" id="menu_button">
+                        <property name="icon-name">open-menu-symbolic</property>
+                        <property name="menu-model">mainMenu</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <property name="content">
+                  <object class="GtkListBox" id="side_panel">
+                    <property name="selection-mode">1</property>
+                    <style>
+                      <class name="navigation-sidebar"/>
+                    </style>
+                    <signal name="row-selected" handler="on_page_select"/>
+                  </object>
+                </property>
+              </object>
+            </property>
+          </object>
+        </property>
+        <property name="content">
+          <object class="AdwNavigationPage" id="main_box">
+            <child>
+              <object class="AdwToolbarView" id="right">
+                <child type="top">
+                  <object class="AdwHeaderBar" id="right_header_bar">
+                    <property name="show-title">false</property>
+                    <child type="start">
+                      <object class="GtkComboBoxText" id="router_combo">
+                        <signal name="changed" handler="on_router_changed"/>
+                      </object>
+                    </child>
+                    <child type="end">
+                      <object class="GtkButton" id="add_router_button">
+                        <property name="icon-name">list-add-symbolic</property>
+                        <signal name="clicked" handler="on_add_router_clicked"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="edit_router_button">
+                        <property name="icon-name">document-edit-symbolic</property>
+                        <signal name="clicked" handler="on_edit_router_clicked"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="delete_router_button">
+                        <property name="icon-name">user-trash-symbolic</property>
+                        <signal name="clicked" handler="on_delete_router_clicked"/>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="AdwViewStack" id="main_content"></object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </property>
+  </template>
+</interface>

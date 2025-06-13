@@ -3,11 +3,32 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, Adw
 
-def create_action_row(name, title):
-        row = Adw.ActionRow()
-        row.set_title(title)
-        row.set_name(name)
-        return row
+def create_action_row(name, title, icon_name=None):
+        listBox_row = Gtk.ListBoxRow()
+        listBox_row.set_name(name)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        box.set_margin_top(6)
+        box.set_margin_bottom(6)
+        box.set_margin_start(6)
+        box.set_margin_end(6)
+        box.set_spacing(12)
+
+        lable = Gtk.Label(label=title)
+
+        if icon_name:
+            image = Gtk.Image.new_from_icon_name(icon_name)
+            image.set_halign(Gtk.Align.START)
+            image.set_valign(Gtk.Align.CENTER)
+        else:
+            image = Gtk.Image()
+
+        box.append(image)
+
+        box.append(lable)
+        listBox_row.set_child(box)
+
+        return listBox_row
 
 def get_signal_icon_name(rssi):
     """Возвращает имя иконки по уровню сигнала RSSI."""
@@ -91,7 +112,9 @@ def create_client_row(client):
 
     net_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     ip_label = make_label(ip, 1, Gtk.Align.END)
+    ip_label.set_selectable(True)
     mac_label = make_label(mac, 1, Gtk.Align.END, dim=True)
+    mac_label.set_selectable(True)
     net_box.append(ip_label)
     net_box.append(mac_label)
     net_box.set_size_request(COL_WIDTH, -1)

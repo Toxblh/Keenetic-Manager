@@ -16,3 +16,4 @@ flatpak/*Devel*
 build/
 dist/
 routers.json
+.idea/

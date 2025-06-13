@@ -30,72 +30,29 @@ class Pages(str, Enum):
     VPN_SERVER = "vpn_server"
     SETTINGS = "settings"
 
-
+@Gtk.Template(resource_path='/ru/toxblh/KeeneticManager/window.ui')
 class RouterManager(Adw.ApplicationWindow):
+    __gtype_name__ = 'RouterManagerWindow'
+
+    main_window = Gtk.Template.Child()
+    sidebar = Gtk.Template.Child()
+    left = Gtk.Template.Child()
+    side_panel = Gtk.Template.Child()
+    main_box = Gtk.Template.Child()
+    right = Gtk.Template.Child()
+    main_content = Gtk.Template.Child()
+    router_combo = Gtk.Template.Child()
+    add_router_button = Gtk.Template.Child()
+    edit_router_button = Gtk.Template.Child()
+    delete_router_button = Gtk.Template.Child()
+    menu_button = Gtk.Template.Child()
+
+    # Список роутеров
+    routers = []
+    current_router = None
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        self.set_title(_("Keenetic Manager"))
-        self.set_default_size(1200, 600)
-
-        # Список роутеров
-        self.routers = []
-        self.current_router = None
-
-        # Основная компоновка
-        self.main_window = Adw.NavigationSplitView()
-        self.main_window.set_max_sidebar_width(220)
-        self.main_window.set_min_sidebar_width(220)
-        self.set_content(self.main_window)
-
-        # Левая часть
-        about_item = Gio.MenuItem.new(_('About'), "app.about")
-
-        menu = Gio.Menu()
-        menu.append_item(about_item)
-
-        menu_button = Gtk.MenuButton(icon_name="open-menu-symbolic")
-        menu_button.set_menu_model(menu)
-
-        header_bar = Adw.HeaderBar()
-        header_bar.pack_end(menu_button)
-
-        action = Gio.SimpleAction.new("about", None)
-        action.connect("activate", self.on_about_action)
-        self.get_application().add_action(action)
-
-        self.left = Adw.ToolbarView()
-        self.left.add_top_bar(header_bar)
-
-        # Боковая панель
-        self.side_panel = Gtk.ListBox()
-        self.side_panel.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        self.side_panel.set_vexpand(True)
-        self.side_panel.set_css_classes(["navigation-sidebar"])
-        self.side_panel.connect('row-selected', self.on_page_select)
-
-        self.left.set_content(self.side_panel)
-
-        self.sidebar = Adw.NavigationPage()
-        self.sidebar.set_title(_("Keenetic Manager"))
-        self.sidebar.set_child(self.left)
-
-        # Основная область контента
-        self.main_content = Adw.ViewStack()
-
-        # Правая часть
-        self.right = Adw.ToolbarView()
-        self.right.set_content(self.main_content)
-
-        self.main_box = Adw.NavigationPage()
-        self.main_box.set_child(self.right)
-
-        # Заголовок окна
-        self.create_header_bar()
-
-        # Разделение на боковую панель и основной контент
-        self.main_window.set_sidebar(self.sidebar)
-        self.main_window.set_content(self.main_box)
 
         # Добавляем кнопки в боковую панель
         self.add_side_panel_buttons()
@@ -121,65 +78,34 @@ class RouterManager(Adw.ApplicationWindow):
                 first_router_info['name'],
             )
 
-    def create_header_bar(self):
-        header_bar = Adw.HeaderBar()
-        self.right.add_top_bar(header_bar)
-
-        # Выпадающий список роутеров
-        self.router_combo = Gtk.ComboBoxText()
-        self.router_combo.connect("changed", self.on_router_changed)
-        header_bar.pack_start(self.router_combo)
-
-        # Кнопка добавления роутера
-        add_router_button = Gtk.Button.new_from_icon_name("list-add-symbolic")
-        add_router_button.set_tooltip_text(_("Add Router"))
-        add_router_button.connect("clicked", self.on_add_router_clicked)
-        header_bar.pack_end(add_router_button)
-
-        # Кнопка редактирования роутера
-        edit_router_button = Gtk.Button.new_from_icon_name(
-            "document-edit-symbolic")
-        edit_router_button.set_tooltip_text(_("Edit Router"))
-        edit_router_button.connect("clicked", self.on_edit_router_clicked)
-        header_bar.pack_end(edit_router_button)
-
-        # Кнопка удаления роутера
-        delete_router_button = Gtk.Button.new_from_icon_name(
-            "user-trash-symbolic")
-        delete_router_button.set_tooltip_text(_("Delete Router"))
-        delete_router_button.connect("clicked", self.on_delete_router_clicked)
-        header_bar.pack_end(delete_router_button)
-
+    @Gtk.Template.Callback("on_page_select")
     def on_page_select(self, listbox, row):
         if row:
             page = row.get_name()
 
+            self.main_content.set_visible_child_name(page)
+
             if page == Pages.ME:
-                self.main_content.set_visible_child_name(Pages.ME)
                 show_me(self)
             elif page == Pages.VPN:
-                self.main_content.set_visible_child_name(Pages.VPN)
                 show_vpn_clients(self)
             elif page == Pages.CLIENTS:
-                self.main_content.set_visible_child_name(Pages.CLIENTS)
                 show_online_clients(self)
             elif page == Pages.VPN_SERVER:
-                self.main_content.set_visible_child_name(Pages.VPN_SERVER)
                 show_vpn_server(self)
             elif page == Pages.SETTINGS:
-                self.main_content.set_visible_child_name(Pages.SETTINGS)
                 show_settings(self)
 
     def add_side_panel_buttons(self):
         # Кнопка Я
-        self.side_panel.append(create_action_row(Pages.ME, _("Me")))
+        self.side_panel.append(create_action_row(Pages.ME, _("Me"), "avatar-default-symbolic"))
 
         # Кнопка VPN
-        self.side_panel.append(create_action_row(Pages.VPN, _("VPN")))
+        self.side_panel.append(create_action_row(Pages.VPN, _("VPN"), "network-wireless-encrypted-symbolic"))
 
         # Кнопка Онлайн клиенты
         self.side_panel.append(create_action_row(
-            Pages.CLIENTS, _("Online Clients")))
+            Pages.CLIENTS, _("Online Clients"), "preferences-system-network-symbolic"))
 
         # Кнопка Настройки VPN сервера
         # self.side_panel.append(create_action_row(
@@ -192,33 +118,34 @@ class RouterManager(Adw.ApplicationWindow):
     def add_main_content_pages(self):
         # Страница я
         self.me_page = Gtk.Box(
-            orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            orientation=Gtk.Orientation.VERTICAL)
         self.main_content.add_titled(self.me_page, Pages.ME, _("Me"))
 
         # Страница VPN
         self.vpn_page = Gtk.Box(
-            orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            orientation=Gtk.Orientation.VERTICAL)
         self.main_content.add_titled(self.vpn_page, Pages.VPN, _("VPN"))
 
         # Страница клиентов
         self.clients_page = Gtk.Box(
-            orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            orientation=Gtk.Orientation.VERTICAL)
         self.main_content.add_titled(
             self.clients_page, Pages.CLIENTS, _("Online Clients"))
 
         # Страница настроек VPN сервера
         self.vpn_server_page = Gtk.Box(
-            orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            orientation=Gtk.Orientation.VERTICAL)
         self.main_content.add_titled(
             self.vpn_server_page, Pages.VPN_SERVER, _("Wireguard Server")
         )
 
         # Страница быстрых настроек
         self.settings_page = Gtk.Box(
-            orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            orientation=Gtk.Orientation.VERTICAL)
         self.main_content.add_titled(
             self.settings_page, Pages.SETTINGS, _("Quick Settings"))
 
+    @Gtk.Template.Callback("on_router_changed")
     def on_router_changed(self, combo):
         # Обработка изменения выбранного роутера
         router_name = combo.get_active_text()
@@ -238,11 +165,13 @@ class RouterManager(Adw.ApplicationWindow):
                 print(_("Selected router: {router_name}").format(
                     router_name=router_info['name']))
 
+    @Gtk.Template.Callback("on_add_router_clicked")
     def on_add_router_clicked(self, button):
         # Диалог для добавления роутера
         dialog = AddEditRouterDialog(self, _("Add Router"))
         dialog.present()
 
+    @Gtk.Template.Callback("on_edit_router_clicked")
     def on_edit_router_clicked(self, button):
         # Диалог для редактирования роутера
         router_name = self.router_combo.get_active_text()
@@ -256,6 +185,7 @@ class RouterManager(Adw.ApplicationWindow):
         else:
             show_message_dialog(self, _("Please select a router to edit."))
 
+    @Gtk.Template.Callback("on_delete_router_clicked")
     def on_delete_router_clicked(self, button):
         # Удаление выбранного роутера
         router_name = self.router_combo.get_active_text()

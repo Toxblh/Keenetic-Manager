@@ -28,19 +28,20 @@ configure_file(
 
 keeneticmanager_sources = [
   '__init__.py',
-  'dialogs.py',
-  'keenetic_router.py',
-  'main.py',
-  'router_manager_app.py',
-  'router_manager.py',
-  'utils.py',
-  'ui.py',
+  'api/keenetic_router.py',
   'config.py',
-  'pages/me/me.py',
-  'pages/vpn.py',
+  'helpers/utils.py',
+  'main.py',
   'pages/clients.py',
+  'pages/me/me.py',
+  'pages/settings.py',
+  'pages/vpn.py',
   'pages/wg_server.py',
-  'pages/settings.py'
+  'router_manager.py',
+  'router_manager_app.py',
+  'widgets/dialogs.py',
+  'widgets/policy_toggle.py',
+  'widgets/ui.py',
 ]
 
 install_data(keeneticmanager_sources, install_dir: moduledir)

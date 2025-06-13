@@ -30,3 +30,15 @@ KeenDNS пример: `https://XXXX.keenetic.link` где XXXX ваш поддо
 <img src="./screenshots/login.png" alt="Keenetic Manager" width="400">
 
 И можете начать управлять, выбрав категорию.
+
+
+## Разработка
+
+Для сборки рекомендую пользоваться Gnome Builder
+Для разработки подготовленно всё для vscode
+
+### Подготовка к релизу
+
+* Проверить версии
+* Написать changelog
+* Обновить переводы

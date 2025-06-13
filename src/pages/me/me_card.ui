@@ -4,6 +4,7 @@
   <object class="GtkBox" id="card">
     <property name="orientation">vertical</property>
     <property name="spacing">10</property>
+    <property name="hexpand">true</property>
     <style>
       <class name="card"/>
       <class name="boxed"/>
@@ -45,10 +46,7 @@
       </object>
     </child>
     <child>
-      <object class="AdwToggleGroup" id="toggle_group">
-        <style>
-          <class name="round"/>
-        </style>
+      <object class="GtkBox" id="toggle_vpn">
         <property name="margin-top">5</property>
         <property name="margin-start">20</property>
         <property name="margin-bottom">20</property>
