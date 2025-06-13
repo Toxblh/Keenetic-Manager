@@ -40,5 +40,9 @@ KeenDNS пример: `https://XXXX.keenetic.link` где XXXX ваш поддо
 ### Подготовка к релизу
 
 * Проверить версии
-* Написать changelog
+    * `make run`
+* Написать [changelog](data/ru.toxblh.KeeneticManager.metainfo.xml.in)
 * Обновить переводы
+    * `make translate`
+    * Обновить в poetry
+    * проверить в `make russian`

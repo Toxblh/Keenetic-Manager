@@ -1,12 +1,10 @@
+from .policy_toggle import PolicyToggleWidget
+from .utils import clear_container, get_local_mac_addresses
+from gi.repository import Gtk, Adw, GLib
 import threading
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, Adw, GLib
-import gettext
-_ = gettext.gettext
 
-from .utils import clear_container, get_local_mac_addresses
-from .policy_toggle import PolicyToggleWidget
 
 def on_value_changed(toggle_group, __, mac_address, self):
     index = toggle_group.get_active()
@@ -17,6 +15,7 @@ def on_value_changed(toggle_group, __, mac_address, self):
         self.apply_policy_to_client(mac_address, None)
     else:
         self.apply_policy_to_client(mac_address, name)
+
 
 def show_vpn_clients(self):
     # Очистка предыдущего контента
@@ -34,7 +33,8 @@ def show_vpn_clients(self):
         clear_container(self.vpn_page)
 
         if not online_clients:
-            label = Gtk.Label(label=_("Failed to retrieve the list of clients."))
+            label = Gtk.Label(
+                label=_("Failed to retrieve the list of clients."))
             self.vpn_page.append(label)
             return
 
@@ -45,6 +45,7 @@ def show_vpn_clients(self):
         def is_online(client):
             data = client.get("data", {})
             return data.get("link") == "up" or data.get("mws", {}).get("link") == "up"
+
         def client_sort_key(client):
             mac = client.get("mac", "").lower()
             if mac in local_macs:
@@ -81,6 +82,7 @@ def show_vpn_clients(self):
         clear_button.set_margin_bottom(5)
         clear_button.set_margin_top(5)
         clear_button.set_margin_end(5)
+
         def on_clear_clicked(_btn):
             search_entry.set_text("")
             search_entry.grab_focus()
@@ -92,7 +94,8 @@ def show_vpn_clients(self):
 
         # Создаем ScrolledWindow
         scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled_window.set_policy(
+            Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled_window.set_min_content_height(400)
         scrolled_window.set_margin_start(10)
         scrolled_window.set_margin_end(10)
@@ -107,7 +110,8 @@ def show_vpn_clients(self):
         # Добавляем заголовки для каждой политики
         policy_names = []
         for policy_name, policy_info in policies.items():
-            policy_names.append((policy_name, policy_info.get("description", policy_name)))
+            policy_names.append(
+                (policy_name, policy_info.get("description", policy_name)))
 
         # --- Filtering logic ---
         def filter_clients(clients, text):
@@ -132,7 +136,8 @@ def show_vpn_clients(self):
                 client_policy = client.get("policy", None)
                 is_current_pc = client_mac in local_macs
                 is_deny = client.get("deny", True)
-                state = client.get("data", {}).get("link") == "up" or client.get("data", {}).get("mws", {}).get("link") == "up"
+                state = client.get("data", {}).get("link") == "up" or client.get(
+                    "data", {}).get("mws", {}).get("link") == "up"
                 online = True if state else False
                 color = "green" if online else "red"
                 status_label = Gtk.Label()
@@ -166,7 +171,6 @@ def show_vpn_clients(self):
 
         # Initial render
         render_table(online_clients)
-
 
     def update_vpn_clients():
         online_clients = self.current_router.get_online_clients()

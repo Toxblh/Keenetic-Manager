@@ -1,12 +1,12 @@
 # dialogs.py
+from .config import save_routers
+from .utils import show_message_dialog
+from .keenetic_router import KeeneticRouter
+import keyring
+from gi.repository import Adw, Gtk
 import gi
 gi.require_version('Adw', '1')
-from gi.repository import Adw, Gtk
 
-import keyring
-from .keenetic_router import KeeneticRouter
-from .utils import show_message_dialog
-from .config import save_routers
 
 class AddEditRouterDialog(Adw.Window):
     def __init__(self, parent, title, router_info=None):
@@ -17,7 +17,8 @@ class AddEditRouterDialog(Adw.Window):
         self.router_info = router_info
 
         # Основной контент
-        content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin_top=20, margin_bottom=20, margin_start=20, margin_end=20)
+        content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10,
+                              margin_top=20, margin_bottom=20, margin_start=20, margin_end=20)
         self.set_content(content_box)
 
         # Сетка для полей ввода
@@ -46,7 +47,8 @@ class AddEditRouterDialog(Adw.Window):
         grid.attach(self.password_entry, 1, 3, 1, 1)
 
         # Кнопки
-        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        button_box = Gtk.Box(
+            orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         content_box.append(button_box)
 
         cancel_button = Gtk.Button(label=_("Cancel"))
@@ -62,7 +64,8 @@ class AddEditRouterDialog(Adw.Window):
             self.name_entry.set_text(self.router_info['name'])
             self.address_entry.set_text(self.router_info['address'])
             self.login_entry.set_text(self.router_info['login'])
-            password = keyring.get_password("router_manager", self.router_info['name'])
+            password = keyring.get_password(
+                "router_manager", self.router_info['name'])
             if password:
                 self.password_entry.set_text(password)
 
@@ -82,11 +85,13 @@ class AddEditRouterDialog(Adw.Window):
             return
 
         # Проверяем, не существует ли роутер с таким именем
-        existing_router = next((r for r in self.parent.routers if r['name'] == name), None)
+        existing_router = next(
+            (r for r in self.parent.routers if r['name'] == name), None)
         if self.router_info:
             # Редактирование
             if existing_router and existing_router != self.router_info:
-                show_message_dialog(self.parent, _("A router with this name already exists."))
+                show_message_dialog(self.parent, _(
+                    "A router with this name already exists."))
                 return
             # Обновляем информацию о роутере
             self.router_info['name'] = name
@@ -97,7 +102,8 @@ class AddEditRouterDialog(Adw.Window):
         else:
             # Добавление нового роутера
             if existing_router:
-                show_message_dialog(self.parent, _("A router with this name already exists."))
+                show_message_dialog(self.parent, _(
+                    "A router with this name already exists."))
                 return
             router_info = {
                 'name': name,

@@ -30,6 +30,7 @@ class Pages(str, Enum):
     VPN_SERVER = "vpn_server"
     SETTINGS = "settings"
 
+
 @Gtk.Template(resource_path='/ru/toxblh/KeeneticManager/window.ui')
 class RouterManager(Adw.ApplicationWindow):
     __gtype_name__ = 'RouterManagerWindow'
@@ -98,10 +99,12 @@ class RouterManager(Adw.ApplicationWindow):
 
     def add_side_panel_buttons(self):
         # Кнопка Я
-        self.side_panel.append(create_action_row(Pages.ME, _("Me"), "avatar-default-symbolic"))
+        self.side_panel.append(create_action_row(
+            Pages.ME, _("Me"), "avatar-default-symbolic"))
 
         # Кнопка VPN
-        self.side_panel.append(create_action_row(Pages.VPN, _("VPN"), "network-wireless-encrypted-symbolic"))
+        self.side_panel.append(create_action_row(
+            Pages.VPN, _("VPN"), "network-wireless-encrypted-symbolic"))
 
         # Кнопка Онлайн клиенты
         self.side_panel.append(create_action_row(
@@ -260,7 +263,7 @@ class RouterManager(Adw.ApplicationWindow):
             application_name=_('Keenetic Manager'),
             application_icon='ru.toxblh.KeeneticManager',
             developer_name=_('Anton Palgunov (Toxblh)'),
-            version='0.1.0',
+            version='0.3.0',
             developers=[_('Anton Palgunov (Toxblh)')],
             copyright=_('© 2024-2025 Anton Palgunov (Toxblh)')
         )

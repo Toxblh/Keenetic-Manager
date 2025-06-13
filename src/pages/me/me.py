@@ -26,9 +26,9 @@ def show_me(self):
     # Очистка предыдущего контента
     clear_container(self.me_page)
     try:
-        _ = __builtins__._
+        __ = __builtins__._
     except AttributeError:
-        def _(s): return s
+        def __(s): return s
 
     # Загружаем UI из GtkBuilder
     builder = Gtk.Builder()
@@ -145,7 +145,8 @@ def show_me(self):
             add_info_row(row, "Type:", iface_type)
             row += 1
             state_markup = '<span foreground="green">●</span> Online' if online else '<span foreground="gray">●</span> Offline'
-            state_label = add_info_row(row, "State:", state_markup, markup=True)
+            state_label = add_info_row(
+                row, "State:", state_markup, markup=True)
             row += 1
             ip = get_ip(interface)
             add_info_row(row, "IP:", ip)

@@ -29,7 +29,7 @@
         </child>
         <child>
           <object class="GtkLabel" id="placeholder_label">
-            <property name="label">В данный момент вы не в сети роутера, к которому подключились.</property>
+            <property name="label" translatable="yes">You are currently not on the network of the router you are connected to.</property>
             <property name="margin-top">40</property>
             <property name="margin-bottom">40</property>
             <property name="halign">center</property>
