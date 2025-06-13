@@ -1,99 +1,110 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>ru.toxblh.KeeneticManager</id>
-  <metadata_license>CC0-1.0</metadata_license>
-  <project_license>MIT</project_license>
+    <id>ru.toxblh.KeeneticManager</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>MIT</project_license>
 
-  <name>Keenetic Manager</name>
-  <summary>Provides the ability to manage some features of the Keenetic router more easily</summary>
-  <description>
-    <p>Provides the ability to manage some features of the Keenetic router more easily or provided UI for cli only features</p>
-  </description>
+    <name>Keenetic Manager</name>
+    <summary>Provides the ability to manage some features of the Keenetic router more easily</summary>
+    <description>
+        <p>Provides the ability to manage some features of the Keenetic router more easily or provided UI for cli only features</p>
+    </description>
 
-  <developer id="tld.vendor">
-    <name>Anton Palgunov (Toxblh)</name>
-  </developer>
+    <developer id="tld.vendor">
+        <name>Anton Palgunov (Toxblh)</name>
+    </developer>
 
-  <!-- Requered: Should be a link to the upstream homepage for the component -->
-  <url type="homepage">https://github.com/Toxblh/Keenetic-Manager</url>
-  <!-- Recommended: It is highly recommended for open-source projects to display the source code repository -->
-  <url type="vcs-browser">https://github.com/Toxblh/Keenetic-Manager</url>
-  <!-- Should point to the software's bug tracking system, for users to report new bugs -->
-  <url type="bugtracker">https://github.com/Toxblh/Keenetic-Manager/issues</url>
-  <!-- Should link a FAQ page for this software, to answer some of the most-asked questions in detail -->
-  <!-- URLs of this type should point to a webpage where users can submit or modify translations of the upstream project -->
-  <url type="translate">https://github.com/Toxblh/Keenetic-Manager</url>
-  <url type="faq">https://github.com/Toxblh/Keenetic-Manager</url>
-  <!--Sould provide a web link to an online user's reference, a software manual or help page -->
-  <url type="help">https://github.com/Toxblh/Keenetic-Manager/issues</url>
-  <!-- URLs of this type should point to a webpage showing information on how to donate to the described software project -->
-  <url type="donation">https://toxblh.ru/support</url>
-  <!--This could for example be an HTTPS URL to an online form or a page describing how to contact the developer -->
-  <url type="contact">https://toxblh.ru/contacts</url>
-  <!--URLs of this type should point to a webpage showing information on how to contribute to the described software project -->
-  <url type="contribute">https://github.com/Toxblh/Keenetic-Manager</url>
+    <!-- Requered: Should be a link to the upstream homepage for the component -->
+    <url type="homepage">https://github.com/Toxblh/Keenetic-Manager</url>
+    <!-- Recommended: It is highly recommended for open-source projects to display the source code repository -->
+    <url type="vcs-browser">https://github.com/Toxblh/Keenetic-Manager</url>
+    <!-- Should point to the software's bug tracking system, for users to report new bugs -->
+    <url type="bugtracker">https://github.com/Toxblh/Keenetic-Manager/issues</url>
+    <!-- Should link a FAQ page for this software, to answer some of the most-asked questions in detail -->
+    <!-- URLs of this type should point to a webpage where users can submit or modify translations of the upstream project -->
+    <url type="translate">https://github.com/Toxblh/Keenetic-Manager</url>
+    <url type="faq">https://github.com/Toxblh/Keenetic-Manager</url>
+    <!--Sould provide a web link to an online user's reference, a software manual or help page -->
+    <url type="help">https://github.com/Toxblh/Keenetic-Manager/issues</url>
+    <!-- URLs of this type should point to a webpage showing information on how to donate to the described software project -->
+    <url type="donation">https://toxblh.ru/support</url>
+    <!--This could for example be an HTTPS URL to an online form or a page describing how to contact the developer -->
+    <url type="contact">https://toxblh.ru/contacts</url>
+    <!--URLs of this type should point to a webpage showing information on how to contribute to the described software project -->
+    <url type="contribute">https://github.com/Toxblh/Keenetic-Manager</url>
 
-  <translation type="gettext">keeneticmanager</translation>
-  <!-- All graphical applications having a desktop file must have this tag in the MetaInfo.
+    <translation type="gettext">keeneticmanager</translation>
+    <!-- All graphical applications having a desktop file must have this tag in the MetaInfo.
      If this is present, appstreamcli compose will pull icons, keywords and categories from the desktop file. -->
-  <launchable type="desktop-id">ru.toxblh.KeeneticManager.desktop</launchable>
-  <!-- Use the OARS website (https://hughsie.github.io/oars/generate.html) to generate these and make sure to use oars-1.1 -->
-  <content_rating type="oars-1.1" />
+    <launchable type="desktop-id">ru.toxblh.KeeneticManager.desktop</launchable>
+    <!-- Use the OARS website (https://hughsie.github.io/oars/generate.html) to generate these and make sure to use oars-1.1 -->
+    <content_rating type="oars-1.1" />
 
-  <!-- Applications should set a brand color in both light and dark variants like so -->
-  <branding>
-    <color type="primary" scheme_preference="light">#ff00ff</color>
-    <color type="primary" scheme_preference="dark">#993d3d</color>
-  </branding>
+    <!-- Applications should set a brand color in both light and dark variants like so -->
+    <branding>
+        <color type="primary" scheme_preference="light">#ff00ff</color>
+        <color type="primary" scheme_preference="dark">#993d3d</color>
+    </branding>
 
-  <screenshots>
-    <screenshot type="default">
-      <image>https://raw.githubusercontent.com/Toxblh/Keenetic-Manager/refs/heads/master/screenshots/shot.png</image>
-      <caption>Main UI</caption>
-    </screenshot>
-    <screenshot>
-      <image>https://raw.githubusercontent.com/Toxblh/Keenetic-Manager/refs/heads/master/screenshots/login.png</image>
-      <caption>Login</caption>
-    </screenshot>
-  </screenshots>
+    <screenshots>
+        <screenshot type="default">
+            <image>https://raw.githubusercontent.com/Toxblh/Keenetic-Manager/refs/heads/master/screenshots/shot.png</image>
+            <caption>Main UI</caption>
+        </screenshot>
+        <screenshot>
+            <image>https://raw.githubusercontent.com/Toxblh/Keenetic-Manager/refs/heads/master/screenshots/login.png</image>
+            <caption>Login</caption>
+        </screenshot>
+    </screenshots>
 
-  <releases>
-    <release version="0.2.2" date="2024-10-16">
-      <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.2.2</url>
-      <description translate="no">
-        <p>Minor fixes</p>
-        <ul>
-          <li>No some special</li>
-        </ul>
-      </description>
-    </release> 
-    <release version="0.2.1" date="2024-10-16">
-      <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.2.1</url>
-      <description translate="no">
-        <p>Minor fixes</p>
-        <ul>
-          <li>No some special</li>
-        </ul>
-      </description>
-    </release> 
-    <release version="0.2.0" date="2024-10-15">
-      <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.2.0</url>
-      <description translate="no">
-        <p>Main release</p>
-        <ul>
-          <li>Publishing to Flathub</li>
-        </ul>
-      </description>
-    </release> 
-    <release version="0.1.0" date="2024-09-25">
-      <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.1.0</url>
-      <description translate="no">
-        <p>First release</p>
-        <ul>
-          <li>No changes</li>
-        </ul>
-      </description>
-    </release>
-  </releases>
+    <releases>
+        <release version="0.3.0" date="2025-06-14">
+            <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.3.0</url>
+            <description translate="no">
+                <p>Rework application</p>
+                <ul>
+                    <li>New page Me, which present your curent device setting on router.</li>
+                    <li>Re-work VPN page. Added search.</li>
+                    <li>Re-work online clients. Added search. Possible to copy IP and MAC addresses</li>
+                </ul>
+            </description>
+        </release>
+        <release version="0.2.2" date="2024-10-16">
+            <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.2.2</url>
+            <description translate="no">
+                <p>Minor fixes</p>
+                <ul>
+                    <li>No some special</li>
+                </ul>
+            </description>
+        </release>
+        <release version="0.2.1" date="2024-10-16">
+            <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.2.1</url>
+            <description translate="no">
+                <p>Minor fixes</p>
+                <ul>
+                    <li>No some special</li>
+                </ul>
+            </description>
+        </release>
+        <release version="0.2.0" date="2024-10-15">
+            <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.2.0</url>
+            <description translate="no">
+                <p>Main release</p>
+                <ul>
+                    <li>Publishing to Flathub</li>
+                </ul>
+            </description>
+        </release>
+        <release version="0.1.0" date="2024-09-25">
+            <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.1.0</url>
+            <description translate="no">
+                <p>First release</p>
+                <ul>
+                    <li>No changes</li>
+                </ul>
+            </description>
+        </release>
+    </releases>
 
 </component>

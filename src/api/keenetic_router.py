@@ -82,6 +82,7 @@ class KeeneticRouter:
             print(_("Error retrieving policies."))
             return {}
 
+
     def get_online_clients(self):
         if not self.login():
             return []
@@ -102,7 +103,7 @@ class KeeneticRouter:
                 "name": client.get("name", "Unknown"),
                 "ip": client.get("ip", "N/A"),
                 "mac": mac,
-                "online": client.get("online", False),
+                "data": client,
                 "policy": None,  # Мы заполним это позже
             }
 
@@ -139,6 +140,7 @@ class KeeneticRouter:
         return online_clients
 
     def apply_policy_to_client(self, mac, policy):
+        """Снимает блокировку с клиента и применяет к нему политику."""
         if not self.login():
             return False
 
@@ -171,3 +173,24 @@ class KeeneticRouter:
         else:
             print(_("Error retrieving WireGuard settings."))
             return {}
+
+    def set_client_block(self, mac):
+        """Блокирует доступ клиента по MAC-адресу."""
+        if not self.login():
+            return False
+
+        endpoint = "rci/ip/hotspot/host"
+
+        data = {
+            "mac": mac,
+            "schedule": False,
+            "deny": True,
+        }
+
+        response = self.keen_request(endpoint, data=data)
+        if response and response.status_code == 200:
+            return True
+        else:
+            print("Error applying deny flag to client.")
+            return False
+

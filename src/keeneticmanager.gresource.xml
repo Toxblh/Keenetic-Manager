@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
   <gresource prefix="/ru/toxblh/KeeneticManager">
+    <file compressed="true" preprocess="xml-stripblanks">pages/me/me_page.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">pages/me/me_card.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">window.ui</file>
   </gresource>
 </gresources>

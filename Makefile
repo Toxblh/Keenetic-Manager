@@ -18,6 +18,10 @@ setup:  ## Setup build folder.
 	mkdir -p $(BUILD)
 	meson setup . $(BUILD)
 
+translate:
+	meson compile keeneticmanager-pot -C _build
+	meson compile keeneticmanager-update-po -C _build
+
 local:  ## Configure a local build.
 	meson configure $(BUILD) -Dprefix=$$(pwd)/$(BUILD)/testdir
 
@@ -25,10 +29,15 @@ develop:  ## Configure a local build with debugging.
 	meson configure $(BUILD) -Dprefix=$$(pwd)/$(BUILD)/testdir -Dprofile=development
 
 run:  ## Run the local build.
-	ninja -C $(BUILD) install
-	ninja -C $(BUILD) run
+	$(MAKE) install
+	LC_ALL=en_GB.UTF-8 keeneticmanager
+
+russian:
+	$(MAKE) install
+	LC_ALL=ru_RU.UTF-8 keeneticmanager
 
 install:  ## Install system-wide.
+	$(MAKE) setup
 	ninja -C $(BUILD) install
 
 test:  ## Run tests.

@@ -12,7 +12,7 @@
 git clone https://github.com/Toxblh/Keenetic-Manager.git
 cd Keenetic-Manager
 make setup
-make installz
+make install
 ```
 
 ## Использование без установки
@@ -30,3 +30,19 @@ KeenDNS пример: `https://XXXX.keenetic.link` где XXXX ваш поддо
 <img src="./screenshots/login.png" alt="Keenetic Manager" width="400">
 
 И можете начать управлять, выбрав категорию.
+
+
+## Разработка
+
+Для сборки рекомендую пользоваться Gnome Builder
+Для разработки подготовленно всё для vscode
+
+### Подготовка к релизу
+
+* Проверить версии
+    * `make run`
+* Написать [changelog](data/ru.toxblh.KeeneticManager.metainfo.xml.in)
+* Обновить переводы
+    * `make translate`
+    * Обновить в poetry
+    * проверить в `make russian`

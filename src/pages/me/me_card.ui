@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkBox" id="card">
+    <property name="orientation">vertical</property>
+    <property name="spacing">10</property>
+    <property name="hexpand">true</property>
+    <style>
+      <class name="card"/>
+      <class name="boxed"/>
+    </style>
+    <child>
+      <object class="GtkGrid" id="active_grid">
+        <property name="column-spacing">6</property>
+        <property name="row-spacing">4</property>
+        <property name="margin-top">15</property>
+        <property name="margin-start">20</property>
+        <property name="margin-end">20</property>
+        <property name="hexpand">True</property>
+        <child>
+          <object class="GtkLabel" id="header_label">
+            <property name="halign">start</property>
+            <property name="use-markup">True</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="traffic_label">
+            <property name="halign">end</property>
+            <property name="hexpand">True</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel" id="active_label">
+            <property name="halign">end</property>
+            <property name="hexpand">True</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkGrid" id="info_grid">
+        <property name="column-spacing">6</property>
+        <property name="row-spacing">4</property>
+        <property name="margin-top">5</property>
+        <property name="margin-start">20</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="toggle_vpn">
+        <property name="margin-top">5</property>
+        <property name="margin-start">20</property>
+        <property name="margin-bottom">20</property>
+        <property name="margin-end">20</property>
+      </object>
+    </child>
+  </object>
+</interface>

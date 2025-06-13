@@ -1,14 +1,11 @@
 # router_manager_app.py
-import gi
-import os
-from pathlib import Path
-
-gi.require_version('Adw', '1')
-from gi.repository import Adw, Gio, Gtk
-
 from .router_manager import RouterManager
+from gi.repository import Adw, Gio
+import gi
+gi.require_version('Adw', '1')
 
 Adw.init()
+
 
 class RouterManagerApplication(Adw.Application):
     def __init__(self):
@@ -36,4 +33,3 @@ class RouterManagerApplication(Adw.Application):
         self.add_action(action)
         if shortcuts:
             self.set_accels_for_action(f"app.{name}", shortcuts)
-
