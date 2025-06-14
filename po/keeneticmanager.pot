@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keeneticmanager\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-14 00:29+0100\n"
+"POT-Creation-Date: 2025-06-14 02:28+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -200,34 +200,38 @@ msgstr ""
 msgid "translator-credits"
 msgstr ""
 
-#: src/widgets/dialogs.py:28
+#: src/widgets/dialogs.py:30
 msgid "Name:"
 msgstr ""
 
-#: src/widgets/dialogs.py:33
-msgid "Address:"
+#: src/widgets/dialogs.py:35
+msgid "Address*:"
 msgstr ""
 
-#: src/widgets/dialogs.py:38
+#: src/widgets/dialogs.py:42
+msgid "* 192.168.1.1 or https://example.keenetic.link"
+msgstr ""
+
+#: src/widgets/dialogs.py:45
 msgid "Login:"
 msgstr ""
 
-#: src/widgets/dialogs.py:43
+#: src/widgets/dialogs.py:50
 msgid "Password:"
 msgstr ""
 
-#: src/widgets/dialogs.py:54
+#: src/widgets/dialogs.py:61
 msgid "Cancel"
 msgstr ""
 
-#: src/widgets/dialogs.py:58
+#: src/widgets/dialogs.py:65
 msgid "Save"
 msgstr ""
 
-#: src/widgets/dialogs.py:84
+#: src/widgets/dialogs.py:103
 msgid "Please fill in all fields."
 msgstr ""
 
-#: src/widgets/dialogs.py:94 src/widgets/dialogs.py:106
+#: src/widgets/dialogs.py:113 src/widgets/dialogs.py:125
 msgid "A router with this name already exists."
 msgstr ""

@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-14 00:29+0100\n"
-"PO-Revision-Date: 2025-06-14 00:37+0100\n"
+"POT-Creation-Date: 2025-06-14 02:28+0100\n"
+"PO-Revision-Date: 2025-06-14 02:28+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "Language: ru\n"
@@ -206,35 +206,39 @@ msgstr "© 2024-2025Антон Пальгунов (Toxblh)"
 msgid "translator-credits"
 msgstr "переводчики"
 
-#: src/widgets/dialogs.py:28
+#: src/widgets/dialogs.py:30
 msgid "Name:"
 msgstr "Название:"
 
-#: src/widgets/dialogs.py:33
-msgid "Address:"
-msgstr "Адрес:"
+#: src/widgets/dialogs.py:35
+msgid "Address*:"
+msgstr "Адрес*:"
 
-#: src/widgets/dialogs.py:38
+#: src/widgets/dialogs.py:42
+msgid "* 192.168.1.1 or https://example.keenetic.link"
+msgstr "* 192.168.1.1 или https://example.keenetic.link"
+
+#: src/widgets/dialogs.py:45
 msgid "Login:"
 msgstr "Логин:"
 
-#: src/widgets/dialogs.py:43
+#: src/widgets/dialogs.py:50
 msgid "Password:"
 msgstr "Пароль:"
 
-#: src/widgets/dialogs.py:54
+#: src/widgets/dialogs.py:61
 msgid "Cancel"
 msgstr "Отмена"
 
-#: src/widgets/dialogs.py:58
+#: src/widgets/dialogs.py:65
 msgid "Save"
 msgstr "Сохранить"
 
-#: src/widgets/dialogs.py:84
+#: src/widgets/dialogs.py:103
 msgid "Please fill in all fields."
 msgstr "Пожалуйста, заполните все поля."
 
-#: src/widgets/dialogs.py:94 src/widgets/dialogs.py:106
+#: src/widgets/dialogs.py:113 src/widgets/dialogs.py:125
 msgid "A router with this name already exists."
 msgstr "Роутер с таким именем уже существует."
 

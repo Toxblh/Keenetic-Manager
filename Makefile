@@ -19,6 +19,7 @@ setup:  ## Setup build folder.
 	meson setup . $(BUILD)
 
 translate:
+	$(MAKE) setup
 	meson compile keeneticmanager-pot -C _build
 	meson compile keeneticmanager-update-po -C _build
 
