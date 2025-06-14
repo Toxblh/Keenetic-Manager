@@ -194,3 +194,86 @@ class KeeneticRouter:
             print("Error applying deny flag to client.")
             return False
 
+    # === ZeroTier API ===
+    def zt_get_status(self):
+        """Получить статус интерфейса ZeroTier0."""
+        if not self.login():
+            return "Not authenticated"
+        endpoint = "rci/show/interface/ZeroTier0"
+        response = self.keen_request(endpoint)
+        if response and response.status_code == 200:
+            data = response.json()
+            if data and isinstance(data, list):
+                iface = data[0]
+                status = iface.get("status", "unknown")
+                network_id = iface.get("zerotier", {}).get("network-id", "-")
+                return f"{status} (network-id: {network_id})"
+            return str(data)
+        return "No interface or error"
+
+    def zt_set_network_id(self, network_id):
+        """Установить network-id для ZeroTier0."""
+        if not self.login():
+            return False
+        endpoint = "rci/interface/ZeroTier0"
+        data = {"zerotier": {"network-id": network_id}}
+        response = self.keen_request(endpoint, data=data)
+        return response and response.status_code == 200
+
+    def zt_set_accept_addresses(self, enabled):
+        """Включить/выключить accept-addresses на ZeroTier0."""
+        if not self.login():
+            return False
+        endpoint = "rci/interface/ZeroTier0"
+        data = {"zerotier": {"accept-addresses": enabled}}
+        response = self.keen_request(endpoint, data=data)
+        return response and response.status_code == 200
+
+    def zt_set_accept_routes(self, enabled):
+        """Включить/выключить accept-routes на ZeroTier0."""
+        if not self.login():
+            return False
+        endpoint = "rci/interface/ZeroTier0"
+        data = {"zerotier": {"accept-routes": enabled}}
+        response = self.keen_request(endpoint, data=data)
+        return response and response.status_code == 200
+
+    def zt_connect_interface(self, via=None):
+        """Подключить интерфейс ZeroTier0 (опционально через via)."""
+        if not self.login():
+            return False
+        endpoint = "rci/interface/ZeroTier0"
+        data = {"zerotier": {"connect": True}}
+        if via:
+            data["zerotier"]["connect"] = {"via": via}
+        response = self.keen_request(endpoint, data=data)
+        return response and response.status_code == 200
+
+    def zt_get_peers(self):
+        """Получить список пиров ZeroTier0."""
+        if not self.login():
+            return []
+        endpoint = "rci/show/interface/ZeroTier0/zerotier/peers"
+        response = self.keen_request(endpoint)
+        if response and response.status_code == 200:
+            data = response.json()
+            if isinstance(data, list):
+                return [peer.get("address", str(peer)) for peer in data]
+            return [str(data)]
+        return []
+
+    def zt_delete_interface(self):
+        """Удалить интерфейс ZeroTier0."""
+        if not self.login():
+            return False
+        endpoint = "rci/interface/ZeroTier0"
+        data = {"_delete": True}
+        response = self.keen_request(endpoint, data=data)
+        return response and response.status_code == 200
+
+    def zt_reset_identity(self):
+        """Сбросить identity-файлы ZeroTier (если поддерживается)."""
+        # Keenetic API не предоставляет прямого способа, обычно это делается вручную через CLI
+        # Можно реализовать через exec, если поддерживается, или просто удалить интерфейс и создать заново
+        return self.zt_delete_interface()
+

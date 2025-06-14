@@ -4,6 +4,7 @@ from .config import load_routers, save_routers, CONFIG_FILE
 from .utils import (
     show_message_dialog,
     show_confirmation_dialog,
+    clear_container
 )
 from .dialogs import AddEditRouterDialog
 from .keenetic_router import KeeneticRouter
@@ -14,7 +15,7 @@ import gi
 from .me import show_me
 from .vpn import show_vpn_clients
 from .clients import show_online_clients
-from .settings import show_settings
+from .zero_tier import ZeroTierPage
 from .wg_server import show_vpn_server
 
 from .ui import create_client_row, create_action_row
@@ -28,7 +29,7 @@ class Pages(str, Enum):
     VPN = "vpn"
     CLIENTS = "clients"
     VPN_SERVER = "vpn_server"
-    SETTINGS = "settings"
+    ZERO_TIER = "zero_tier"
 
 
 @Gtk.Template(resource_path='/ru/toxblh/KeeneticManager/window.ui')
@@ -94,8 +95,11 @@ class RouterManager(Adw.ApplicationWindow):
                 show_online_clients(self)
             elif page == Pages.VPN_SERVER:
                 show_vpn_server(self)
-            elif page == Pages.SETTINGS:
-                show_settings(self)
+            elif page == Pages.ZERO_TIER:
+                # Очищаем контейнер страницы (GTK4)
+                clear_container(self.zero_tier_page)
+                # Добавляем виджет страницы ZeroTier
+                self.zero_tier_page.append(ZeroTierPage(self))
 
     def add_side_panel_buttons(self):
         # Кнопка Я
@@ -115,8 +119,8 @@ class RouterManager(Adw.ApplicationWindow):
         #     Pages.VPN_SERVER, _("WireGurad Server")))
 
         # Кнопка Настройки
-        # self.side_panel.append(create_action_row(
-        #     Pages.SETTINGS, _("Quick Settings")))
+        self.side_panel.append(create_action_row(
+            Pages.ZERO_TIER, _("ZeroTier"), "zerotier"))
 
     def add_main_content_pages(self):
         # Страница я
@@ -143,10 +147,10 @@ class RouterManager(Adw.ApplicationWindow):
         )
 
         # Страница быстрых настроек
-        self.settings_page = Gtk.Box(
+        self.zero_tier_page = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL)
         self.main_content.add_titled(
-            self.settings_page, Pages.SETTINGS, _("Quick Settings"))
+            self.zero_tier_page, Pages.ZERO_TIER, _("ZeroTier"))
 
     @Gtk.Template.Callback("on_router_changed")
     def on_router_changed(self, combo):

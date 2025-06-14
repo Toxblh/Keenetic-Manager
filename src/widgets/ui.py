@@ -17,7 +17,10 @@ def create_action_row(name, title, icon_name=None):
         lable = Gtk.Label(label=title)
 
         if icon_name:
-            image = Gtk.Image.new_from_icon_name(icon_name)
+            if icon_name == "zerotier":
+                image = Gtk.Image.new_from_resource("/ru/toxblh/KeeneticManager/widgets/zerotier.svg")
+            else:
+                image = Gtk.Image.new_from_icon_name(icon_name)
             image.set_halign(Gtk.Align.START)
             image.set_valign(Gtk.Align.CENTER)
         else:

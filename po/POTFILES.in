@@ -12,6 +12,7 @@ src/pages/me/me.py
 src/pages/settings.py
 src/pages/vpn.py
 src/pages/wg_server.py
+src/pages/zero_tier.py
 src/router_manager.py
 src/router_manager_app.py
 src/widgets/dialogs.py

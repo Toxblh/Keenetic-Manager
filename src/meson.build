@@ -37,6 +37,7 @@ keeneticmanager_sources = [
   'pages/settings.py',
   'pages/vpn.py',
   'pages/wg_server.py',
+  'pages/zero_tier.py',
   'router_manager.py',
   'router_manager_app.py',
   'widgets/dialogs.py',
