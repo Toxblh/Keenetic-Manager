@@ -41,6 +41,9 @@ install:  ## Install system-wide.
 	$(MAKE) setup
 	ninja -C $(BUILD) install
 
+uninstall:
+	ninja -C $(BUILD) uninstall
+
 test:  ## Run tests.
 	ninja -C $(BUILD) install
 	ninja -C $(BUILD) test
