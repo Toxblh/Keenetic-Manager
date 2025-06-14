@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-14 02:28+0100\n"
-"PO-Revision-Date: 2025-06-14 02:28+0100\n"
+"POT-Creation-Date: 2025-06-14 14:14+0100\n"
+"PO-Revision-Date: 2025-06-14 14:14+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "Language: ru\n"
@@ -20,7 +20,8 @@ msgstr ""
 "X-Generator: Poedit 3.6\n"
 
 #: data/ru.toxblh.KeeneticManager.desktop.in:3
-#: data/ru.toxblh.KeeneticManager.metainfo.xml.in:7 src/router_manager.py:263
+#: data/ru.toxblh.KeeneticManager.metainfo.xml.in:7
+#: src/router_manager_app.py:41 src/window.ui:25
 msgid "Keenetic Manager"
 msgstr "Keenetic Manager"
 
@@ -44,8 +45,8 @@ msgstr ""
 "Обеспечивает возможность простого управления некоторыми функциями роутера "
 "Keenetic или предоставляет пользовательский интерфейс скрытых возможностей"
 
-#: data/ru.toxblh.KeeneticManager.metainfo.xml.in:14 src/router_manager.py:265
-#: src/router_manager.py:267
+#: data/ru.toxblh.KeeneticManager.metainfo.xml.in:14
+#: src/router_manager_app.py:43 src/router_manager_app.py:45
 msgid "Anton Palgunov (Toxblh)"
 msgstr "Антон Пальгунов (Toxblh)"
 
@@ -197,12 +198,11 @@ msgstr "Политика {policy_name} применена к клиенту {cli
 msgid "Failed to apply policy {policy_name} to client {client_mac}"
 msgstr "Не удалось применить политику {policy_name} к клиенту {client_mac}"
 
-#: src/router_manager.py:268
+#: src/router_manager_app.py:46
 msgid "© 2024-2025 Anton Palgunov (Toxblh)"
 msgstr "© 2024-2025Антон Пальгунов (Toxblh)"
 
-#. Translators: Replace "translator-credits" with your name/username, and optionally an email or URL.
-#: src/router_manager.py:273
+#: src/router_manager_app.py:50
 msgid "translator-credits"
 msgstr "переводчики"
 
@@ -234,13 +234,28 @@ msgstr "Отмена"
 msgid "Save"
 msgstr "Сохранить"
 
-#: src/widgets/dialogs.py:103
+#: src/widgets/dialogs.py:102
 msgid "Please fill in all fields."
 msgstr "Пожалуйста, заполните все поля."
 
-#: src/widgets/dialogs.py:113 src/widgets/dialogs.py:125
+#: src/widgets/dialogs.py:112 src/widgets/dialogs.py:124
 msgid "A router with this name already exists."
 msgstr "Роутер с таким именем уже существует."
+
+#: src/window.ui:8
+msgid "About"
+msgstr "О программе"
+
+#: src/window.ui:14
+msgid "Quit"
+msgstr "Выход"
+
+#: src/pages/me/me_page.ui:32
+msgid ""
+"You are currently not on the network of the router you are connected to."
+msgstr ""
+"В данный момент вы не находитесь в сети маршрутизатора, к которому "
+"подключены."
 
 #~ msgid "Authentication error."
 #~ msgstr "Ошибка аутентификации."
@@ -270,9 +285,6 @@ msgstr "Роутер с таким именем уже существует."
 
 #~ msgid "Router Manager"
 #~ msgstr "Менеджер роутеров"
-
-#~ msgid "About"
-#~ msgstr "О программе"
 
 #~ msgid "Delete Router"
 #~ msgstr "Удалить роутер"

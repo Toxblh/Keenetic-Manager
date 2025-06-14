@@ -17,3 +17,6 @@ src/router_manager_app.py
 src/widgets/dialogs.py
 src/widgets/policy_toggle.py
 src/widgets/ui.py
+src/window.ui
+src/pages/me/me_page.ui
+src/pages/me/me_card.ui

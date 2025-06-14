@@ -257,18 +257,3 @@ class RouterManager(Adw.ApplicationWindow):
         # Реализуйте функцию для добавления нового пира
         pass
 
-    def on_about_action(self, *args):
-        """Callback for the app.about action."""
-        about = Adw.AboutDialog(
-            application_name=_('Keenetic Manager'),
-            application_icon='ru.toxblh.KeeneticManager',
-            developer_name=_('Anton Palgunov (Toxblh)'),
-            version='0.3.1',
-            developers=[_('Anton Palgunov (Toxblh)')],
-            copyright=_('© 2024-2025 Anton Palgunov (Toxblh)')
-        )
-        about.add_link("GitHub", "https://github.com/Toxblh/Keenetic-Manager")
-        about.add_link("Donate", "https://toxblh.ru/support")
-        # Translators: Replace "translator-credits" with your name/username, and optionally an email or URL.
-        about.set_translator_credits(_('translator-credits'))
-        about.present(self.get_application().get_active_window())
