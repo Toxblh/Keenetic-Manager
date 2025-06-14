@@ -5,6 +5,8 @@ from .keenetic_router import KeeneticRouter
 import keyring
 from gi.repository import Adw, Gtk
 import gi
+import threading
+import netifaces
 gi.require_version('Adw', '1')
 
 
@@ -30,21 +32,26 @@ class AddEditRouterDialog(Adw.Window):
         self.name_entry = Gtk.Entry()
         grid.attach(self.name_entry, 1, 0, 1, 1)
 
-        address_label = Gtk.Label(label=_("Address:"))
+        address_label = Gtk.Label(label=_("Address*:"))
         grid.attach(address_label, 0, 1, 1, 1)
         self.address_entry = Gtk.Entry()
+        self.address_entry.set_placeholder_text('192.168.1.1 // https://example.keenetic.link')
         grid.attach(self.address_entry, 1, 1, 1, 1)
 
+        address_label = Gtk.Label()
+        address_label.set_markup('<span size="small"><i>' + _("* 192.168.1.1 or https://example.keenetic.link") + "</i></span>")
+        grid.attach(address_label, 0, 2, 2, 1)
+
         login_label = Gtk.Label(label=_("Login:"))
-        grid.attach(login_label, 0, 2, 1, 1)
+        grid.attach(login_label, 0, 3, 1, 1)
         self.login_entry = Gtk.Entry()
-        grid.attach(self.login_entry, 1, 2, 1, 1)
+        grid.attach(self.login_entry, 1, 3, 1, 1)
 
         password_label = Gtk.Label(label=_("Password:"))
-        grid.attach(password_label, 0, 3, 1, 1)
+        grid.attach(password_label, 0, 4, 1, 1)
         self.password_entry = Gtk.Entry()
         self.password_entry.set_visibility(False)
-        grid.attach(self.password_entry, 1, 3, 1, 1)
+        grid.attach(self.password_entry, 1, 4, 1, 1)
 
         # Кнопки
         button_box = Gtk.Box(
@@ -68,6 +75,17 @@ class AddEditRouterDialog(Adw.Window):
                 "router_manager", self.router_info['name'])
             if password:
                 self.password_entry.set_text(password)
+
+        try:
+            gws = netifaces.gateways()
+            default_gw = gws.get('default', {}).get(netifaces.AF_INET)
+
+            if default_gw:
+                gw = default_gw[0]
+                self.address_entry.set_text(gw)
+                self.login_entry.set_text("admin")
+        except Exception:
+            pass
 
         self.show()
 

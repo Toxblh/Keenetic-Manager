@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-14 00:29+0100\n"
+"POT-Creation-Date: 2025-06-14 02:28+0100\n"
 "PO-Revision-Date: 2024-10-15 23:28+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -204,35 +204,40 @@ msgstr "© 2024 Anton Palgunov (Toxblh)"
 msgid "translator-credits"
 msgstr "translator-credits"
 
-#: src/widgets/dialogs.py:28
+#: src/widgets/dialogs.py:30
 msgid "Name:"
 msgstr "Name:"
 
-#: src/widgets/dialogs.py:33
-msgid "Address:"
+#: src/widgets/dialogs.py:35
+#, fuzzy
+msgid "Address*:"
 msgstr "Address:"
 
-#: src/widgets/dialogs.py:38
+#: src/widgets/dialogs.py:42
+msgid "* 192.168.1.1 or https://example.keenetic.link"
+msgstr ""
+
+#: src/widgets/dialogs.py:45
 msgid "Login:"
 msgstr "Login:"
 
-#: src/widgets/dialogs.py:43
+#: src/widgets/dialogs.py:50
 msgid "Password:"
 msgstr "Password:"
 
-#: src/widgets/dialogs.py:54
+#: src/widgets/dialogs.py:61
 msgid "Cancel"
 msgstr "Cancel"
 
-#: src/widgets/dialogs.py:58
+#: src/widgets/dialogs.py:65
 msgid "Save"
 msgstr "Save"
 
-#: src/widgets/dialogs.py:84
+#: src/widgets/dialogs.py:103
 msgid "Please fill in all fields."
 msgstr "Please fill in all fields."
 
-#: src/widgets/dialogs.py:94 src/widgets/dialogs.py:106
+#: src/widgets/dialogs.py:113 src/widgets/dialogs.py:125
 msgid "A router with this name already exists."
 msgstr "A router with this name already exists."
 
