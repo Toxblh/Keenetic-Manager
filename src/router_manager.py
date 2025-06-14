@@ -263,7 +263,7 @@ class RouterManager(Adw.ApplicationWindow):
             application_name=_('Keenetic Manager'),
             application_icon='ru.toxblh.KeeneticManager',
             developer_name=_('Anton Palgunov (Toxblh)'),
-            version='0.3.0',
+            version='0.3.1',
             developers=[_('Anton Palgunov (Toxblh)')],
             copyright=_('© 2024-2025 Anton Palgunov (Toxblh)')
         )

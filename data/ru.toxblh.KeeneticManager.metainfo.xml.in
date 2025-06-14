@@ -58,6 +58,18 @@
     </screenshots>
 
     <releases>
+        <release version="0.3.1" date="2025-06-14">
+            <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.3.1</url>
+            <description translate="no">
+                <p>Rework application</p>
+                <ul>
+                    <li>New page Me, which present your curent device setting on router.</li>
+                    <li>Re-work VPN page. Added search.</li>
+                    <li>Re-work online clients. Added search. Possible to copy IP and MAC addresses</li>
+                    <li>Auto search gateway for adding</li>
+                </ul>
+            </description>
+        </release>
         <release version="0.3.0" date="2025-06-14">
             <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.3.0</url>
             <description translate="no">
