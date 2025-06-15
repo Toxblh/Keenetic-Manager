@@ -57,14 +57,14 @@ def show_vpn_clients(self):
         online_clients.sort(key=client_sort_key)
 
         # --- Search input + Update button ---
-        search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
 
         update_button = Gtk.Button(label=_("Update"))
         update_button.set_icon_name("view-refresh-symbolic")
         update_button.set_tooltip_text(_("Update the list of VPN clients"))
-        update_button.set_margin_bottom(5)
-        update_button.set_margin_top(5)
-        update_button.set_margin_start(5)
+        update_button.set_margin_bottom(12)
+        update_button.set_margin_top(6)
+        update_button.set_margin_start(6)
         update_button.set_margin_end(0)
         update_button.connect("clicked", lambda _: threading.Thread(
             target=lambda: update_vpn_clients(), daemon=True).start())
@@ -72,16 +72,16 @@ def show_vpn_clients(self):
 
         search_entry = Gtk.Entry()
         search_entry.set_placeholder_text(_("Search by name, IP or MAC"))
-        search_entry.set_margin_bottom(5)
-        search_entry.set_margin_top(5)
+        search_entry.set_margin_bottom(12)
+        search_entry.set_margin_top(6)
         search_entry.set_hexpand(True)
         search_box.append(search_entry)
 
         clear_button = Gtk.Button(label=_('Clear'))
         clear_button.set_tooltip_text(_('Clear search field'))
-        clear_button.set_margin_bottom(5)
-        clear_button.set_margin_top(5)
-        clear_button.set_margin_end(5)
+        clear_button.set_margin_bottom(12)
+        clear_button.set_margin_top(6)
+        clear_button.set_margin_end(8)
 
         def on_clear_clicked(_btn):
             search_entry.set_text("")
@@ -97,14 +97,14 @@ def show_vpn_clients(self):
         scrolled_window.set_policy(
             Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled_window.set_min_content_height(400)
-        scrolled_window.set_margin_start(10)
-        scrolled_window.set_margin_end(10)
         scrolled_window.set_vexpand(True)
         self.vpn_page.append(scrolled_window)
 
         # Создаем Grid
         grid = Gtk.Grid(column_spacing=10, row_spacing=10)
         grid.set_column_homogeneous(False)
+        grid.set_margin_start(10)
+        grid.set_margin_end(10)
         scrolled_window.set_child(grid)
 
         # Добавляем заголовки для каждой политики
@@ -157,8 +157,7 @@ def show_vpn_clients(self):
                     deny=is_deny,
                     router=getattr(self, 'current_router', None),
                     mac=client_mac,
-                    policy_names=policy_names,
-                    sensitive=online
+                    policy_names=policy_names
                 )
                 grid.attach(policy_widget, 2, row_idx, 1, 1)
 

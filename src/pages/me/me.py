@@ -179,7 +179,6 @@ def show_me(self):
                 router=getattr(self, 'current_router', None),
                 mac=mac,
                 policy_names=policy_names,
-                sensitive=online,
                 policy_label=policy_label
             )
             toggle_vpn.append(policy_widget)

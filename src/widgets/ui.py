@@ -100,8 +100,8 @@ def create_client_row(client):
     row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
     row_box.set_margin_top(4)
     row_box.set_margin_bottom(4)
-    row_box.set_margin_start(4)
-    row_box.set_margin_end(4)
+    row_box.set_margin_start(6)
+    row_box.set_margin_end(6)
 
     name_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     name_label = make_label(name, 0, Gtk.Align.START, hexpand=True)

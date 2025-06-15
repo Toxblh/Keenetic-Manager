@@ -7,17 +7,9 @@ import threading
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
-
-# Храним виджеты клиентов по MAC
-CLIENT_WIDGETS_KEY = '_client_widgets'
-CLIENTS_LISTBOX_KEY = '_clients_listbox'
-CLIENTS_SCROLLED_KEY = '_clients_scrolled'
 CLIENTS_REFRESH_TIMER_KEY = '_clients_refresh_timer'
 
-
-# --- Автообновление вынесено выше ---
 def start_clients_auto_refresh(self):
-    # Останавливаем предыдущий таймер если был
     if hasattr(self, CLIENTS_REFRESH_TIMER_KEY):
         return  # Уже запущен
 
@@ -35,21 +27,21 @@ def show_online_clients(self):
     self._client_widgets = {}
 
     # --- Search input ---
-    search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+    search_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
     search_entry = Gtk.Entry()
     search_entry.set_placeholder_text(_('Search by name, IP or MAC'))
-    search_entry.set_margin_bottom(5)
-    search_entry.set_margin_top(5)
-    search_entry.set_margin_start(5)
+    search_entry.set_margin_bottom(12)
+    search_entry.set_margin_top(6)
+    search_entry.set_margin_start(6)
     search_entry.set_margin_end(0)
     search_entry.set_hexpand(True)
     search_box.append(search_entry)
 
     clear_button = Gtk.Button(label=_('Clear'))
     clear_button.set_tooltip_text(_('Clear search field'))
-    clear_button.set_margin_bottom(5)
-    clear_button.set_margin_top(5)
-    clear_button.set_margin_end(5)
+    clear_button.set_margin_bottom(12)
+    clear_button.set_margin_top(6)
+    clear_button.set_margin_end(8)
 
     def on_clear_clicked(_btn):
         search_entry.set_text("")
@@ -57,22 +49,18 @@ def show_online_clients(self):
     clear_button.connect('clicked', on_clear_clicked)
     search_box.append(clear_button)
 
-    self.clients_page.append(search_box)
-    search_entry.grab_focus()
+    self.clients_page.append(search_box)\
 
     scrolled_window = Gtk.ScrolledWindow()
     scrolled_window.set_policy(
         Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
     scrolled_window.set_min_content_height(400)
-    scrolled_window.set_margin_start(10)
-    scrolled_window.set_margin_end(10)
     scrolled_window.set_vexpand(True)
     self.clients_page.append(scrolled_window)
 
     listbox = Gtk.ListBox()
     scrolled_window.set_child(listbox)
     self._clients_listbox = listbox
-    self._clients_scrolled = scrolled_window
 
     if not self.current_router:
         label = Gtk.Label(label=_('Please select a router.'))
@@ -104,13 +92,11 @@ def show_online_clients(self):
 
     def initial_update():
         update_clients_data(self)
+        search_entry.grab_focus()
         return False
     GLib.idle_add(initial_update)
 
     start_clients_auto_refresh(self)
-
-# --- Новый метод для обновления только UI по локальному состоянию ---
-
 
 def update_clients_ui(self):
     def is_valid_ip(ip):
