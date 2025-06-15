@@ -1,3 +1,4 @@
 requests
 netifaces
 keyring
+debugpy

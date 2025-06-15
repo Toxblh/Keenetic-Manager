@@ -5,7 +5,7 @@ gi.require_version('Adw', '1')
 
 
 class PolicyToggleWidget(Gtk.Box):
-    def __init__(self, policies, current_policy=None, deny=False, router=None, mac=None, policy_names=None, on_policy_applied=None, sensitive=True):
+    def __init__(self, policies, current_policy=None, deny=False, router=None, mac=None, policy_names=None, sensitive=True, policy_label=None):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         self.policies = policies
         self.current_policy = current_policy
@@ -13,7 +13,7 @@ class PolicyToggleWidget(Gtk.Box):
         self.router = router
         self.mac = mac
         self.policy_names = policy_names or []
-        self.on_policy_applied = on_policy_applied
+        self.policy_label = policy_label
         self.toggle_group = Adw.ToggleGroup()
         self.toggle_group.set_css_classes(["round"])
         self.set_sensitive(sensitive)
@@ -53,6 +53,7 @@ class PolicyToggleWidget(Gtk.Box):
     def _on_toggle(self, toggle_group, _):
         idx = toggle_group.get_active()
         name = toggle_group.get_active_name()
+
         # Применяем политику
         if self.router and self.mac:
             if idx == 0:
@@ -69,11 +70,12 @@ class PolicyToggleWidget(Gtk.Box):
                         break
                 else:
                     result = name
-            if self.on_policy_applied:
-                self.on_policy_applied(result)
+
+            if self.policy_label:
+                self.policy_label.set_text(result)
         else:
-            if self.on_policy_applied:
-                self.on_policy_applied(name)
+            if self.policy_label:
+                self.policy_label.set_text(name)
 
     def update_state(self, current_policy=None, deny=None, sensitive=None):
         # Disconnect from notify::active to avoid recursive calls

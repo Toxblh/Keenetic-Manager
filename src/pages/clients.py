@@ -5,6 +5,7 @@ import gi
 import threading
 
 gi.require_version('Gtk', '4.0')
+gi.require_version('Adw', '1')
 
 
 # Храним виджеты клиентов по MAC
@@ -24,6 +25,7 @@ def start_clients_auto_refresh(self):
         threading.Thread(target=update_clients_data,
                          args=(self,), daemon=True).start()
         return True
+
     timer_id = GLib.timeout_add_seconds(2, refresh)
     setattr(self, CLIENTS_REFRESH_TIMER_KEY, timer_id)
 
@@ -163,9 +165,6 @@ def update_clients_ui(self):
                 del client_widgets[mac]
         return False
     GLib.idle_add(update_ui)
-
-# --- Изменённый метод: только обновляет локальное состояние и вызывает update_clients_ui ---
-
 
 def update_clients_data(self):
     online_clients = self.current_router.get_online_clients() if self.current_router else []

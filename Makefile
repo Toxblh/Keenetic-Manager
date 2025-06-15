@@ -24,10 +24,14 @@ translate:
 	meson compile keeneticmanager-update-po -C _build
 
 local:  ## Configure a local build.
-	meson configure $(BUILD) -Dprefix=$$(pwd)/$(BUILD)/testdir
+	$(MAKE) clean
+	$(MAKE) setup
+	meson configure $(BUILD) -Dprefix=$$(pwd)/$(BUILD)/testdir -Dbuildtype=debug
+	ninja -C $(BUILD) install
 
-develop:  ## Configure a local build with debugging.
-	meson configure $(BUILD) -Dprefix=$$(pwd)/$(BUILD)/testdir -Dprofile=development
+start:
+	$(MAKE) local
+	$(BUILD)/testdir/bin/keeneticmanager
 
 run:  ## Run the local build.
 	$(MAKE) install
@@ -50,4 +54,4 @@ test:  ## Run tests.
 	TEST_PATH=$(TEST_PATH) ninja -C $(BUILD) tests
 
 clean:  ## Clean build files.
-	rm -r $(BUILD)
+	yes | rm -r $(BUILD)

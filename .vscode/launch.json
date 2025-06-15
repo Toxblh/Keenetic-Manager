@@ -5,7 +5,7 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Python Debugger: Remote Attach",
+			"name": "Debugger Flatpak",
 			"type": "debugpy",
 			"request": "attach",
             "preLaunchTask": "flatpak: run debug",
@@ -19,6 +19,13 @@
 					"remoteRoot": "/app/share/gnomepythontest/gnomepythontest/"
 				}
 			]
-		}
+		},
+        {
+            "name": "Debugger Host",
+            "type": "debugpy",
+            "preLaunchTask": "make: local",
+            "request": "launch",
+            "program": "${workspaceFolder}/_build/testdir/bin/keeneticmanager",
+        }
 	]
 }

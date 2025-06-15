@@ -139,6 +139,7 @@ def show_me(self):
                 info_grid.attach(label, 0, row, 1, 1)
                 info_grid.attach(value, 1, row, 1, 1)
                 return value
+
             row = 0
             add_info_row(row, "Name:", interface)
             row += 1
@@ -161,18 +162,15 @@ def show_me(self):
             if policy_human is None:
                 if client_policy is None:
                     policy_human = "Default"
-                if client_deny:
+                elif client_deny:
                     policy_human = "Blocked"
                 else:
                     policy_human = str(client_policy)
-            policy_label = add_info_row(row, "Policy:", policy_human)
+            policy_label = add_info_row(row, "Policy:", policy_human);
             row += 1
 
             traffic_label.set_text("↓ 0 KB/s  ↑ 0 KB/s")
             active_label.set_text("")
-
-            def on_policy_applied(policy_human):
-                policy_label.set_text(policy_human)
 
             policy_widget = PolicyToggleWidget(
                 policies=policy_names,
@@ -181,8 +179,8 @@ def show_me(self):
                 router=getattr(self, 'current_router', None),
                 mac=mac,
                 policy_names=policy_names,
-                on_policy_applied=on_policy_applied,
-                sensitive=online
+                sensitive=online,
+                policy_label=policy_label
             )
             toggle_vpn.append(policy_widget)
 
@@ -201,7 +199,6 @@ def show_me(self):
             placeholder_label.set_visible(False)
 
         def update_traffic():
-            from gi.repository import GLib
             prev_stats = {}
             while True:
                 for w in card_widgets:
@@ -240,7 +237,6 @@ def show_me(self):
             clients = self.current_router.get_online_clients()
         except Exception:
             clients = []
-        from gi.repository import GLib
         GLib.idle_add(render, clients)
 
     threading.Thread(target=fetch_clients, daemon=True).start()
