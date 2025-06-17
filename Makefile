@@ -31,17 +31,14 @@ local:  ## Configure a local build.
 
 start:
 	$(MAKE) local
-	$(BUILD)/testdir/bin/keeneticmanager
+	LC_ALL=en_GB.UTF-8 $(BUILD)/testdir/bin/keeneticmanager
 
-run:  ## Run the local build.
-	$(MAKE) install
-	LC_ALL=en_GB.UTF-8 keeneticmanager
-
-russian:
-	$(MAKE) install
-	LC_ALL=ru_RU.UTF-8 keeneticmanager
+start-ru:
+	$(MAKE) local
+	LC_ALL=ru_RU.UTF-8 $(BUILD)/testdir/bin/keeneticmanager
 
 install:  ## Install system-wide.
+	$(MAKE) clean
 	$(MAKE) setup
 	ninja -C $(BUILD) install
 
@@ -54,4 +51,4 @@ test:  ## Run tests.
 	TEST_PATH=$(TEST_PATH) ninja -C $(BUILD) tests
 
 clean:  ## Clean build files.
-	yes | rm -r $(BUILD)
+	yes | rm -rf $(BUILD)
