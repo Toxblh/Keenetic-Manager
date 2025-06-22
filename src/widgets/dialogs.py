@@ -87,17 +87,17 @@ class AddEditRouterDialog(Adw.Window):
                 "router_manager", self.router_info['name'])
             if password:
                 self.password_entry.set_text(password)
+        else:
+            try:
+                gws = netifaces.gateways()
+                default_gw = gws.get('default', {}).get(netifaces.AF_INET)
 
-        try:
-            gws = netifaces.gateways()
-            default_gw = gws.get('default', {}).get(netifaces.AF_INET)
-
-            if default_gw:
-                gw = default_gw[0]
-                self.address_entry.set_text(gw)
-                self.login_entry.set_text("admin")
-        except Exception:
-            pass
+                if default_gw:
+                    gw = default_gw[0]
+                    self.address_entry.set_text(gw)
+                    self.login_entry.set_text("admin")
+            except Exception:
+                pass
 
         self.show()
 
@@ -167,6 +167,7 @@ class AddEditRouterDialog(Adw.Window):
                             self.parent.router_combo.set_active(0)
                             self.parent.current_router = router
                     save_routers(self.parent.routers)
+                    self.parent.refresh_router_combo(selected_router_name=name)
                     self.close()
                 GLib.idle_add(save)
             except Exception as e:

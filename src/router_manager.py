@@ -261,3 +261,21 @@ class RouterManager(Adw.ApplicationWindow):
         # Реализуйте функцию для добавления нового пира
         pass
 
+    def refresh_router_combo(self, selected_router_name=None):
+        """Обновляет список роутеров в ComboBox по self.routers. Если передано selected_router_name, выбирает его."""
+        self.router_combo.remove_all()
+        for router in self.routers:
+            self.router_combo.append_text(router["name"])
+        if self.routers:
+            if selected_router_name:
+                for i, router in enumerate(self.routers):
+                    if router["name"] == selected_router_name:
+                        self.router_combo.set_active(i)
+                        break
+                else:
+                    self.router_combo.set_active(0)
+            else:
+                self.router_combo.set_active(0)
+        else:
+            self.current_router = None
+
