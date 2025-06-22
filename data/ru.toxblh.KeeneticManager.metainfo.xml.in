@@ -58,6 +58,16 @@
     </screenshots>
 
     <releases>
+        <release version="0.3.2" date="2025-06-22">
+            <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.3.2</url>
+            <description translate="no">
+            <p>Improved management of multiple routers</p>
+            <ul>
+                <li>Auto-reload when selecting a different router</li>
+                <li>Adding and editing routers will trigger data checks</li>
+            </ul>
+            </description>
+        </release>
         <release version="0.3.1" date="2025-06-14">
             <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.3.1</url>
             <description translate="no">

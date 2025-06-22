@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-22 14:58+0100\n"
+"POT-Creation-Date: 2025-06-22 16:29+0100\n"
 "PO-Revision-Date: 2024-10-15 23:28+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -19,7 +19,7 @@ msgstr ""
 
 #: data/ru.toxblh.KeeneticManager.desktop.in:3
 #: data/ru.toxblh.KeeneticManager.metainfo.xml.in:7
-#: src/router_manager_app.py:41 src/window.ui:25
+#: src/router_manager_app.py:42 src/window.ui:25
 msgid "Keenetic Manager"
 msgstr "Keenetic Manager"
 
@@ -40,7 +40,7 @@ msgid ""
 msgstr ""
 
 #: data/ru.toxblh.KeeneticManager.metainfo.xml.in:14
-#: src/router_manager_app.py:43 src/router_manager_app.py:45
+#: src/router_manager_app.py:44 src/router_manager_app.py:46
 msgid "Anton Palgunov (Toxblh)"
 msgstr "Anton Palgunov (Toxblh)"
 
@@ -195,12 +195,16 @@ msgstr "Policy {policy_name} applied to client {client_mac}"
 msgid "Failed to apply policy {policy_name} to client {client_mac}"
 msgstr "Failed to apply policy {policy_name} to client {client_mac}"
 
-#: src/router_manager_app.py:46
+#: src/router_manager_app.py:47
 #, fuzzy
 msgid "© 2024-2025 Anton Palgunov (Toxblh)"
 msgstr "© 2024 Anton Palgunov (Toxblh)"
 
 #: src/router_manager_app.py:50
+msgid "Donate"
+msgstr ""
+
+#: src/router_manager_app.py:51
 msgid "translator-credits"
 msgstr "translator-credits"
 

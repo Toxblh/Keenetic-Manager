@@ -12,7 +12,7 @@ from .router_manager_app import RouterManagerApplication
 
 
 def main(version):
-    app = RouterManagerApplication()
+    app = RouterManagerApplication(version)
     return app.run(sys.argv)
 
 
