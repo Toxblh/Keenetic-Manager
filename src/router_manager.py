@@ -80,6 +80,20 @@ class RouterManager(Adw.ApplicationWindow):
                 first_router_info['name'],
             )
 
+    def update_current_page(self):
+        """Обновляет содержимое текущей страницы согласно выбранному роутеру и активной вкладке."""
+        current_page = self.main_content.get_visible_child_name()
+        if current_page == Pages.ME:
+            show_me(self)
+        elif current_page == Pages.VPN:
+            show_vpn_clients(self)
+        elif current_page == Pages.CLIENTS:
+            show_online_clients(self)
+        elif current_page == Pages.VPN_SERVER:
+            show_vpn_server(self)
+        elif current_page == Pages.SETTINGS:
+            show_settings(self)
+
     @Gtk.Template.Callback("on_page_select")
     def on_page_select(self, listbox, row):
         if row:
@@ -87,16 +101,30 @@ class RouterManager(Adw.ApplicationWindow):
 
             self.main_content.set_visible_child_name(page)
 
-            if page == Pages.ME:
-                show_me(self)
-            elif page == Pages.VPN:
-                show_vpn_clients(self)
-            elif page == Pages.CLIENTS:
-                show_online_clients(self)
-            elif page == Pages.VPN_SERVER:
-                show_vpn_server(self)
-            elif page == Pages.SETTINGS:
-                show_settings(self)
+            self.update_current_page()
+
+    @Gtk.Template.Callback("on_router_changed")
+    def on_router_changed(self, combo):
+        # Обработка изменения выбранного роутера
+        router_name = combo.get_active_text()
+        if router_name:
+            # Поиск роутера по имени
+            router_info = next(
+                (r for r in self.routers if r["name"] == router_name), None)
+            if router_info:
+                password = keyring.get_password(
+                    "router_manager", router_info["name"])
+                self.current_router = KeeneticRouter(
+                    router_info["address"],
+                    router_info["login"],
+                    password,
+                    router_info["name"],
+                )
+                print(_("Selected router: {router_name}").format(
+                    router_name=router_info['name']))
+
+        # Обновляем текущую страницу после смены роутера
+        self.update_current_page()
 
     def add_side_panel_buttons(self):
         # Кнопка Я
@@ -148,26 +176,6 @@ class RouterManager(Adw.ApplicationWindow):
             orientation=Gtk.Orientation.VERTICAL)
         self.main_content.add_titled(
             self.settings_page, Pages.SETTINGS, _("Quick Settings"))
-
-    @Gtk.Template.Callback("on_router_changed")
-    def on_router_changed(self, combo):
-        # Обработка изменения выбранного роутера
-        router_name = combo.get_active_text()
-        if router_name:
-            # Поиск роутера по имени
-            router_info = next(
-                (r for r in self.routers if r["name"] == router_name), None)
-            if router_info:
-                password = keyring.get_password(
-                    "router_manager", router_info["name"])
-                self.current_router = KeeneticRouter(
-                    router_info["address"],
-                    router_info["login"],
-                    password,
-                    router_info["name"],
-                )
-                print(_("Selected router: {router_name}").format(
-                    router_name=router_info['name']))
 
     @Gtk.Template.Callback("on_add_router_clicked")
     def on_add_router_clicked(self, button):
