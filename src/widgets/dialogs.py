@@ -1,13 +1,12 @@
 # dialogs.py
 from .config import save_routers
-from .utils import show_message_dialog
 from .keenetic_router import KeeneticRouter
 import keyring
-from gi.repository import Adw, Gtk
 import gi
+gi.require_version('Adw', '1')
+from gi.repository import Adw, Gtk, GLib
 import threading
 import netifaces
-gi.require_version('Adw', '1')
 
 
 class AddEditRouterDialog(Adw.Window):
@@ -53,6 +52,19 @@ class AddEditRouterDialog(Adw.Window):
         self.password_entry.set_visibility(False)
         grid.attach(self.password_entry, 1, 4, 1, 1)
 
+        self.error_label = Gtk.Label()
+        self.error_label.set_margin_top(5)
+        self.error_label.set_margin_bottom(5)
+        self.error_label.set_margin_start(5)
+        self.error_label.set_margin_end(5)
+        self.error_label.set_halign(Gtk.Align.START)
+        self.error_label.set_valign(Gtk.Align.CENTER)
+        self.error_label.set_use_markup(True)
+        self.error_label.set_visible(False)
+        self.error_label.set_wrap(True)
+        self.error_label.set_max_width_chars(28)
+        grid.attach(self.error_label, 0, 5, 2, 1)
+
         # Кнопки
         button_box = Gtk.Box(
             orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -62,9 +74,9 @@ class AddEditRouterDialog(Adw.Window):
         cancel_button.connect("clicked", self.on_cancel_clicked)
         button_box.append(cancel_button)
 
-        ok_button = Gtk.Button(label=_("Save"))
-        ok_button.connect("clicked", self.on_ok_clicked)
-        button_box.append(ok_button)
+        self.ok_button = Gtk.Button(label=_("Save"))
+        self.ok_button.connect("clicked", self.on_ok_clicked)
+        button_box.append(self.ok_button)
 
         # Если редактируем существующий роутер, заполняем поля
         if self.router_info:
@@ -92,54 +104,73 @@ class AddEditRouterDialog(Adw.Window):
     def on_cancel_clicked(self, button):
         self.close()
 
+    def show_error(self, message):
+        self.error_label.set_markup(f'<span foreground="red">{message}</span>')
+        self.error_label.set_visible(True)
+        self.ok_button.set_sensitive(True)
+
+    def clear_error(self):
+        self.error_label.set_visible(False)
+        self.error_label.set_text("")
+
     def on_ok_clicked(self, button):
+        self.ok_button.set_sensitive(False)
+        self.clear_error()
         name = self.name_entry.get_text()
         address = self.address_entry.get_text()
         login = self.login_entry.get_text()
         password = self.password_entry.get_text()
 
+        if address.endswith("/"):
+            address = address[:-1]
+            self.address_entry.set_text(address)
+
         if not name or not address or not login or not password:
-            show_message_dialog(self.parent, _("Please fill in all fields."))
+            self.show_error(_("Please fill in all fields."))
             return
 
         # Проверяем, не существует ли роутер с таким именем
         existing_router = next(
             (r for r in self.parent.routers if r['name'] == name), None)
-        if self.router_info:
-            # Редактирование
-            if existing_router and existing_router != self.router_info:
-                show_message_dialog(self.parent, _(
-                    "A router with this name already exists."))
-                return
-            # Обновляем информацию о роутере
-            self.router_info['name'] = name
-            self.router_info['address'] = address
-            self.router_info['login'] = login
-            # Сохраняем пароль в keyring
-            keyring.set_password("router_manager", name, password)
-        else:
-            # Добавление нового роутера
-            if existing_router:
-                show_message_dialog(self.parent, _(
-                    "A router with this name already exists."))
-                return
-            router_info = {
-                'name': name,
-                'address': address,
-                'login': login
-            }
-            self.parent.routers.append(router_info)
-            self.parent.router_combo.append_text(name)
-            # Сохраняем пароль в keyring
-            keyring.set_password("router_manager", name, password)
-            if len(self.parent.routers) == 1:
-                self.parent.router_combo.set_active(0)
-                self.parent.current_router = KeeneticRouter(
-                    address,
-                    login,
-                    password,
-                    name
-                )
+        if existing_router and (not self.router_info or existing_router != self.router_info):
+            self.show_error(_("A router with this name already exists."))
+            return
 
-        save_routers(self.parent.routers)
-        self.close()
+        # Проверка подключения в отдельном потоке
+        def check_connection():
+            try:
+                router = KeeneticRouter(address, login, password, name)
+                clients = router.get_online_clients()
+                # Проверяем успешность авторизации и подключения
+                if clients is None or clients == []:
+                    def show_auth_err():
+                        self.show_error(_("Please check your address, login and password."))
+                    GLib.idle_add(show_auth_err)
+                    return
+                # Если всё хорошо, сохраняем (в главном потоке)
+                def save():
+                    if self.router_info:
+                        self.router_info['name'] = name
+                        self.router_info['address'] = address
+                        self.router_info['login'] = login
+                        keyring.set_password("router_manager", name, password)
+                    else:
+                        router_info = {
+                            'name': name,
+                            'address': address,
+                            'login': login
+                        }
+                        self.parent.routers.append(router_info)
+                        self.parent.router_combo.append_text(name)
+                        keyring.set_password("router_manager", name, password)
+                        if len(self.parent.routers) == 1:
+                            self.parent.router_combo.set_active(0)
+                            self.parent.current_router = router
+                    save_routers(self.parent.routers)
+                    self.close()
+                GLib.idle_add(save)
+            except Exception as e:
+                def show_err():
+                    self.show_error(str(e))
+                GLib.idle_add(show_err)
+        threading.Thread(target=check_connection, daemon=True).start()
