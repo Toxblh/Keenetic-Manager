@@ -25,7 +25,7 @@
 ### Траблашут
 
 Если VSCode Flatpak ругается на доступ к папке в ./.flatpak/... 
-Сделай `umount` её
+Сделай `umount ./.flatpak/...` её
 
 ### Flathub обнова
 Зайти - https://github.com/flathub/ru.toxblh.KeeneticManager 
