@@ -10,6 +10,7 @@ from .keenetic_router import KeeneticRouter
 import keyring
 from gi.repository import Adw, Gtk, Gio
 import gi
+from keyring.errors import PasswordDeleteError
 
 from .me import show_me
 from .vpn import show_vpn_clients
@@ -198,7 +199,10 @@ class RouterManager(Adw.ApplicationWindow):
                 if response == Gtk.ResponseType.OK:
                     self.routers = [
                         r for r in self.routers if r["name"] != router_name]
-                    keyring.delete_password("router_manager", router_name)
+                    try:
+                        keyring.delete_password("router_manager", router_name)
+                    except PasswordDeleteError:
+                        pass
                     self.router_combo.remove_all()
                     for router in self.routers:
                         self.router_combo.append_text(router["name"])
@@ -206,7 +210,7 @@ class RouterManager(Adw.ApplicationWindow):
                         self.router_combo.set_active(0)
                     else:
                         self.current_router = None
-                    save_routers(CONFIG_FILE, self.routers)
+                    save_routers(self.routers)
 
             show_confirmation_dialog(
                 self,
