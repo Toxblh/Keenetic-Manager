@@ -85,7 +85,7 @@ class AddEditRouterDialog(Adw.Window):
             self.login_entry.set_text(self.router_info['login'])
             password = keyring.get_password(
                 "router_manager", self.router_info['name'])
-            if password:
+            if password and isinstance(password, str):
                 self.password_entry.set_text(password)
         else:
             try:
