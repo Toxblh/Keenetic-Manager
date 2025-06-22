@@ -36,6 +36,8 @@ make install
 
 _KeenDNS пример: `https://XXXX.keenetic.link` где XXXX ваш поддомен._
 
-<img src="./screenshots/login.png" alt="Keenetic Manager" width="400">
+<p align="center">
+    <img src="./screenshots/login.png" alt="Keenetic Manager" width="400">
+</p>
 
-И можете начать управлять, выбрав категорию.
+Всё готово, выберите пункт меню.
