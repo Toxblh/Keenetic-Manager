@@ -10,6 +10,7 @@ from .keenetic_router import KeeneticRouter
 import keyring
 from gi.repository import Adw, Gtk, Gio
 import gi
+from keyring.errors import PasswordDeleteError
 
 from .me import show_me
 from .vpn import show_vpn_clients
@@ -79,6 +80,20 @@ class RouterManager(Adw.ApplicationWindow):
                 first_router_info['name'],
             )
 
+    def update_current_page(self):
+        """Обновляет содержимое текущей страницы согласно выбранному роутеру и активной вкладке."""
+        current_page = self.main_content.get_visible_child_name()
+        if current_page == Pages.ME:
+            show_me(self)
+        elif current_page == Pages.VPN:
+            show_vpn_clients(self)
+        elif current_page == Pages.CLIENTS:
+            show_online_clients(self)
+        elif current_page == Pages.VPN_SERVER:
+            show_vpn_server(self)
+        elif current_page == Pages.SETTINGS:
+            show_settings(self)
+
     @Gtk.Template.Callback("on_page_select")
     def on_page_select(self, listbox, row):
         if row:
@@ -86,16 +101,30 @@ class RouterManager(Adw.ApplicationWindow):
 
             self.main_content.set_visible_child_name(page)
 
-            if page == Pages.ME:
-                show_me(self)
-            elif page == Pages.VPN:
-                show_vpn_clients(self)
-            elif page == Pages.CLIENTS:
-                show_online_clients(self)
-            elif page == Pages.VPN_SERVER:
-                show_vpn_server(self)
-            elif page == Pages.SETTINGS:
-                show_settings(self)
+            self.update_current_page()
+
+    @Gtk.Template.Callback("on_router_changed")
+    def on_router_changed(self, combo):
+        # Обработка изменения выбранного роутера
+        router_name = combo.get_active_text()
+        if router_name:
+            # Поиск роутера по имени
+            router_info = next(
+                (r for r in self.routers if r["name"] == router_name), None)
+            if router_info:
+                password = keyring.get_password(
+                    "router_manager", router_info["name"])
+                self.current_router = KeeneticRouter(
+                    router_info["address"],
+                    router_info["login"],
+                    password,
+                    router_info["name"],
+                )
+                print(_("Selected router: {router_name}").format(
+                    router_name=router_info['name']))
+
+        # Обновляем текущую страницу после смены роутера
+        self.update_current_page()
 
     def add_side_panel_buttons(self):
         # Кнопка Я
@@ -148,26 +177,6 @@ class RouterManager(Adw.ApplicationWindow):
         self.main_content.add_titled(
             self.settings_page, Pages.SETTINGS, _("Quick Settings"))
 
-    @Gtk.Template.Callback("on_router_changed")
-    def on_router_changed(self, combo):
-        # Обработка изменения выбранного роутера
-        router_name = combo.get_active_text()
-        if router_name:
-            # Поиск роутера по имени
-            router_info = next(
-                (r for r in self.routers if r["name"] == router_name), None)
-            if router_info:
-                password = keyring.get_password(
-                    "router_manager", router_info["name"])
-                self.current_router = KeeneticRouter(
-                    router_info["address"],
-                    router_info["login"],
-                    password,
-                    router_info["name"],
-                )
-                print(_("Selected router: {router_name}").format(
-                    router_name=router_info['name']))
-
     @Gtk.Template.Callback("on_add_router_clicked")
     def on_add_router_clicked(self, button):
         # Диалог для добавления роутера
@@ -198,7 +207,10 @@ class RouterManager(Adw.ApplicationWindow):
                 if response == Gtk.ResponseType.OK:
                     self.routers = [
                         r for r in self.routers if r["name"] != router_name]
-                    keyring.delete_password("router_manager", router_name)
+                    try:
+                        keyring.delete_password("router_manager", router_name)
+                    except PasswordDeleteError:
+                        pass
                     self.router_combo.remove_all()
                     for router in self.routers:
                         self.router_combo.append_text(router["name"])
@@ -206,7 +218,7 @@ class RouterManager(Adw.ApplicationWindow):
                         self.router_combo.set_active(0)
                     else:
                         self.current_router = None
-                    save_routers(CONFIG_FILE, self.routers)
+                    save_routers(self.routers)
 
             show_confirmation_dialog(
                 self,
@@ -256,4 +268,22 @@ class RouterManager(Adw.ApplicationWindow):
     def on_add_peer_clicked(self, button):
         # Реализуйте функцию для добавления нового пира
         pass
+
+    def refresh_router_combo(self, selected_router_name=None):
+        """Обновляет список роутеров в ComboBox по self.routers. Если передано selected_router_name, выбирает его."""
+        self.router_combo.remove_all()
+        for router in self.routers:
+            self.router_combo.append_text(router["name"])
+        if self.routers:
+            if selected_router_name:
+                for i, router in enumerate(self.routers):
+                    if router["name"] == selected_router_name:
+                        self.router_combo.set_active(i)
+                        break
+                else:
+                    self.router_combo.set_active(0)
+            else:
+                self.router_combo.set_active(0)
+        else:
+            self.current_router = None
 

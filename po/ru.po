@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-14 14:14+0100\n"
-"PO-Revision-Date: 2025-06-14 14:14+0100\n"
+"POT-Creation-Date: 2025-06-22 14:58+0100\n"
+"PO-Revision-Date: 2025-06-22 14:58+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "Language: ru\n"
@@ -68,19 +68,19 @@ msgstr "Ошибка загрузки роутеров: {e}"
 msgid "Error saving routers: {e}"
 msgstr "Ошибка сохранения роутеров: {e}"
 
-#: src/pages/clients.py:38 src/pages/vpn.py:74
+#: src/pages/clients.py:32 src/pages/vpn.py:74
 msgid "Search by name, IP or MAC"
 msgstr "Поиск по имени, IP или MAC"
 
-#: src/pages/clients.py:46 src/pages/vpn.py:80
+#: src/pages/clients.py:40 src/pages/vpn.py:80
 msgid "Clear"
 msgstr "Сброс"
 
-#: src/pages/clients.py:47 src/pages/vpn.py:81
+#: src/pages/clients.py:41 src/pages/vpn.py:81
 msgid "Clear search field"
 msgstr "Очистить поиск"
 
-#: src/pages/clients.py:76 src/pages/vpn.py:28 src/pages/wg_server.py:12
+#: src/pages/clients.py:66 src/pages/vpn.py:28 src/pages/wg_server.py:12
 msgid "Please select a router."
 msgstr "Пожалуйста, выберите роутер."
 
@@ -131,69 +131,69 @@ msgstr "Показать QR-код"
 msgid "Add Peer"
 msgstr "Добавить пира"
 
-#: src/router_manager.py:103 src/router_manager.py:125
-msgid "Me"
-msgstr "Это устройство"
-
-#: src/router_manager.py:107 src/router_manager.py:130
-msgid "VPN"
-msgstr "VPN"
-
-#: src/router_manager.py:111 src/router_manager.py:136
-msgid "Online Clients"
-msgstr "Клиенты онлайн"
-
-#: src/router_manager.py:142
-msgid "Wireguard Server"
-msgstr "Wireguard Сервер"
-
-#: src/router_manager.py:149
-msgid "Quick Settings"
-msgstr "Быстрые настройки"
-
-#: src/router_manager.py:168
+#: src/router_manager.py:123
 #, python-brace-format
 msgid "Selected router: {router_name}"
 msgstr "Выбран роутер: {router_name}"
 
+#: src/router_manager.py:132 src/router_manager.py:154
+msgid "Me"
+msgstr "Это устройство"
+
+#: src/router_manager.py:136 src/router_manager.py:159
+msgid "VPN"
+msgstr "VPN"
+
+#: src/router_manager.py:140 src/router_manager.py:165
+msgid "Online Clients"
+msgstr "Клиенты онлайн"
+
+#: src/router_manager.py:171
+msgid "Wireguard Server"
+msgstr "Wireguard Сервер"
+
+#: src/router_manager.py:178
+msgid "Quick Settings"
+msgstr "Быстрые настройки"
+
 #. Диалог для добавления роутера
-#: src/router_manager.py:174
+#: src/router_manager.py:183
 msgid "Add Router"
 msgstr "Добавить роутер"
 
-#: src/router_manager.py:186
+#: src/router_manager.py:195
 msgid "Edit Router"
 msgstr "Редактировать роутер"
 
-#: src/router_manager.py:189
+#: src/router_manager.py:198
 msgid "Please select a router to edit."
 msgstr "Пожалуйста, выберите роутер для редактирования."
 
-#: src/router_manager.py:213
+#: src/router_manager.py:225
 #, python-brace-format
 msgid "Are you sure you want to delete the router '{router_name}'?"
 msgstr "Вы уверены, что хотите удалить роутер '{router_name}'?"
 
-#: src/router_manager.py:218
+#: src/router_manager.py:230
 msgid "Please select a router to delete."
 msgstr "Пожалуйста, выберите роутер для удаления."
 
-#: src/router_manager.py:226
+#: src/router_manager.py:238
 #, python-brace-format
 msgid "Default policy applied to client {client_mac}"
 msgstr "Политика по умолчанию применена к клиенту {client_mac}"
 
-#: src/router_manager.py:231
+#: src/router_manager.py:243
 #, python-brace-format
 msgid "Failed to apply the default policy to client {client_mac}"
 msgstr "Не удалось применить политику по умолчанию к клиенту {client_mac}"
 
-#: src/router_manager.py:240
+#: src/router_manager.py:252
 #, python-brace-format
 msgid "Policy {policy_name} applied to client {client_mac}"
 msgstr "Политика {policy_name} применена к клиенту {client_mac}"
 
-#: src/router_manager.py:245
+#: src/router_manager.py:257
 #, python-brace-format
 msgid "Failed to apply policy {policy_name} to client {client_mac}"
 msgstr "Не удалось применить политику {policy_name} к клиенту {client_mac}"
@@ -206,41 +206,45 @@ msgstr "© 2024-2025Антон Пальгунов (Toxblh)"
 msgid "translator-credits"
 msgstr "переводчики"
 
-#: src/widgets/dialogs.py:30
+#: src/widgets/dialogs.py:29
 msgid "Name:"
 msgstr "Название:"
 
-#: src/widgets/dialogs.py:35
+#: src/widgets/dialogs.py:34
 msgid "Address*:"
 msgstr "Адрес*:"
 
-#: src/widgets/dialogs.py:42
+#: src/widgets/dialogs.py:41
 msgid "* 192.168.1.1 or https://example.keenetic.link"
 msgstr "* 192.168.1.1 или https://example.keenetic.link"
 
-#: src/widgets/dialogs.py:45
+#: src/widgets/dialogs.py:44
 msgid "Login:"
 msgstr "Логин:"
 
-#: src/widgets/dialogs.py:50
+#: src/widgets/dialogs.py:49
 msgid "Password:"
 msgstr "Пароль:"
 
-#: src/widgets/dialogs.py:61
+#: src/widgets/dialogs.py:73
 msgid "Cancel"
 msgstr "Отмена"
 
-#: src/widgets/dialogs.py:65
+#: src/widgets/dialogs.py:77
 msgid "Save"
 msgstr "Сохранить"
 
-#: src/widgets/dialogs.py:102
+#: src/widgets/dialogs.py:129
 msgid "Please fill in all fields."
 msgstr "Пожалуйста, заполните все поля."
 
-#: src/widgets/dialogs.py:112 src/widgets/dialogs.py:124
+#: src/widgets/dialogs.py:136
 msgid "A router with this name already exists."
 msgstr "Роутер с таким именем уже существует."
+
+#: src/widgets/dialogs.py:147
+msgid "Please check your address, login and password."
+msgstr "Пожалуйста, проверьте ваш адрес, логин и пароль."
 
 #: src/window.ui:8
 msgid "About"
