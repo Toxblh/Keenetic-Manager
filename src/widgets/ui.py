@@ -70,7 +70,9 @@ def get_client_data(client):
     port = data.get("port")
     mode = pick("mode", default="N/A")
     priority = data.get("priority", "N/A")
-    return ap, rssi, txrate, encryption, support, txss, ht, speed, port, mode, priority
+    state = client.get("data", {}).get("link") == "up" or client.get("data", {}).get("mws", {}).get("link") == "up"
+    online = True if state else False
+    return ap, rssi, txrate, encryption, support, txss, ht, speed, port, mode, priority, online
 
 def get_wifi_ghz(ap):
     if ap == "WifiMaster0/AccessPoint0":
@@ -79,11 +81,11 @@ def get_wifi_ghz(ap):
         return "5 GHz"
     return ""
 
-def create_client_row(client):
+def create_client_row(client, on_wol_clicked=None):
     name = client.get("name")
     ip = client.get("ip")
     mac = client.get("mac", "N/A")
-    ap, rssi, txrate, encryption, support, txss, ht, speed, port, mode, priority = get_client_data(client)
+    ap, rssi, txrate, encryption, support, txss, ht, speed, port, mode, priority, online = get_client_data(client)
     connection = "Wi-Fi" if ap else "Ethernet"
     wifi_Ghz = get_wifi_ghz(ap)
     COL_WIDTH, ICON_WIDTH, BTN_WIDTH = 160, 36, 48
@@ -109,6 +111,25 @@ def create_client_row(client):
     name_box.set_halign(Gtk.Align.FILL)
     name_box.append(name_label)
     row_box.append(name_box)
+
+    wol_button = Gtk.Button()
+    wol_button.set_icon_name("system-shutdown-symbolic")
+
+    if online:
+        wol_button.get_style_context().add_class("success")
+    else:
+        wol_button.get_style_context().add_class("destructive-action")
+
+    wol_button.set_tooltip_text("Wake on LAN")
+    wol_button.set_size_request(48, 32)
+    wol_button.get_style_context().add_class("flat")
+    wol_button.connect("clicked", on_wol_clicked, mac)
+
+    wol_box = Gtk.Box()
+    wol_box.set_size_request(48, -1)
+    wol_box.set_halign(Gtk.Align.END)
+    wol_box.append(wol_button)
+    row_box.append(wol_box)
 
     net_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     ip_label = make_label(ip, 1, Gtk.Align.END)
@@ -166,6 +187,7 @@ def create_client_row(client):
 
     widgets = {
         'name_label': name_label,
+        'wol_button': wol_button,
         'ip_label': ip_label,
         'mac_label': mac_label,
         'net_label': net_label,
@@ -180,7 +202,7 @@ def create_client_row(client):
         name = new_client.get("name")
         ip = new_client.get("ip")
         mac = new_client.get("mac", "N/A")
-        ap, rssi, txrate, encryption, support, txss, ht, speed, port, mode, priority = get_client_data(new_client)
+        ap, rssi, txrate, encryption, support, txss, ht, speed, port, mode, priority, online = get_client_data(new_client)
         wifi_Ghz = get_wifi_ghz(ap)
         widgets['name_label'].set_text(name)
         widgets['ip_label'].set_text(ip)
@@ -197,6 +219,10 @@ def create_client_row(client):
         widgets['info_label'].set_text(
             f"{mode}{support_str} {txss}х{txss} {ht} МГц" if ap else f"Порт {port}")
         widgets['circle_button'].set_label(str(priority))
+        if online:
+            widgets['wol_button'].get_style_context().add_class("success")
+        else:
+            widgets['wol_button'].get_style_context().add_class("destructive")
 
     listbox_row = Gtk.ListBoxRow()
     listbox_row.set_child(row_box)

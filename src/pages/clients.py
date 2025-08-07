@@ -49,7 +49,7 @@ def show_online_clients(self):
     clear_button.connect('clicked', on_clear_clicked)
     search_box.append(clear_button)
 
-    self.clients_page.append(search_box)\
+    self.clients_page.append(search_box)
 
     scrolled_window = Gtk.ScrolledWindow()
     scrolled_window.set_policy(
@@ -68,7 +68,7 @@ def show_online_clients(self):
         return
 
     self._clients_search_text = ""
-    self._all_online_clients = []  # локальное состояние
+    self._all_online_clients = []  # All clients (online and offline)
 
     def filter_clients(clients, text):
         text = text.strip().lower()
@@ -100,6 +100,8 @@ def show_online_clients(self):
 
 def update_clients_ui(self):
     def is_valid_ip(ip):
+        if not ip or ip == "N/A":
+            return False
         parts = ip.split('.')
         return len(parts) == 4 and all(p.isdigit() and 0 <= int(p) <= 255 for p in parts)
 
@@ -108,22 +110,61 @@ def update_clients_ui(self):
         state = data.get("link") == "up" or data.get(
             "mws", {}).get("link") == "up"
         return bool(state)
+
     # Фильтруем только клиентов с валидным IP и online
-    filtered_clients = [c for c in self._all_online_clients if is_valid_ip(
+    online_clients = [c for c in self._all_online_clients if is_valid_ip(
         c.get("ip", "")) and is_online(c)]
-    # --- Apply search filter if present ---
+
+    offline_clients = [c for c in self._all_online_clients if is_valid_ip(
+        c.get("ip", "")) and not is_online(c)]
+
+    # Применяем поисковый фильтр
     search_text = getattr(self, '_clients_search_text', '')
     filter_clients = getattr(self, '_clients_filter_clients', None)
     if filter_clients:
-        filtered_clients = filter_clients(filtered_clients, search_text)
+        online_clients = filter_clients(online_clients, search_text)
+        offline_clients = filter_clients(offline_clients, search_text)
 
     def ip_key(client):
         ip = client.get("ip", "")
+        if not is_valid_ip(ip):
+            return (999, 999, 999, 999)
         try:
             return tuple(int(part) for part in ip.split("."))
         except Exception:
-            return (0, 0, 0, 0)
-    clients_sorted = sorted(filtered_clients, key=ip_key)
+            return (999, 999, 999, 999)
+
+    # Сортируем отдельно онлайн и оффлайн клиентов
+    online_sorted = sorted(online_clients, key=ip_key)
+    offline_sorted = sorted(offline_clients, key=lambda x: x.get("name", "").lower())
+
+    # Объединяем: сначала онлайн, потом оффлайн
+    clients_sorted = online_sorted + offline_sorted
+
+    def on_wol_clicked(_, mac):
+        print(f"Wake on LAN clicked for MAC: {mac}")
+        def wol_thread():
+            try:
+                success, message = self.current_router.wake_on_lan(mac)
+
+                print(success, message)
+
+                def show_result():
+                    if success:
+                        print(f"Wake on LAN sent to ({mac})\n{message}")
+                    else:
+                        print(f"Failed to send Wake on LAN to ({mac})\n{message}")
+                    return False
+
+                GLib.idle_add(show_result)
+            except Exception as e:
+                def show_error():
+                    print(f"Error sending Wake on LAN: {e}")
+                    return False
+                GLib.idle_add(show_error)
+
+        # Запускаем WoL в отдельном потоке
+        threading.Thread(target=wol_thread, daemon=True).start()
 
     def update_ui():
         if not hasattr(self, '_clients_listbox'):
@@ -131,6 +172,7 @@ def update_clients_ui(self):
         listbox = self._clients_listbox
         client_widgets = getattr(self, '_client_widgets', {})
         macs_seen = set()
+
         for client in clients_sorted:
             mac = client.get('mac')
             if not mac:
@@ -141,9 +183,10 @@ def update_clients_ui(self):
                 if hasattr(row, 'update_data'):
                     row.update_data(client)
             else:
-                row = create_client_row(client)
+                row = create_client_row(client, on_wol_clicked=on_wol_clicked)
                 client_widgets[mac] = row
                 listbox.append(row)
+
         for mac in list(client_widgets.keys()):
             if mac not in macs_seen:
                 row = client_widgets[mac]
@@ -153,6 +196,6 @@ def update_clients_ui(self):
     GLib.idle_add(update_ui)
 
 def update_clients_data(self):
-    online_clients = self.current_router.get_online_clients() if self.current_router else []
-    self._all_online_clients = online_clients
+    all_clients = self.current_router.get_online_clients() if self.current_router else []
+    self._all_online_clients = all_clients
     update_clients_ui(self)

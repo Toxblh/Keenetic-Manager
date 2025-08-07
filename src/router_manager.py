@@ -137,7 +137,7 @@ class RouterManager(Adw.ApplicationWindow):
 
         # Кнопка Онлайн клиенты
         self.side_panel.append(create_action_row(
-            Pages.CLIENTS, _("Online Clients"), "preferences-system-network-symbolic"))
+            Pages.CLIENTS, _("Clients"), "preferences-system-network-symbolic"))
 
         # Кнопка Настройки VPN сервера
         # self.side_panel.append(create_action_row(

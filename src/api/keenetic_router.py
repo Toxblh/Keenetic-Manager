@@ -194,3 +194,28 @@ class KeeneticRouter:
             print("Error applying deny flag to client.")
             return False
 
+    def wake_on_lan(self, mac):
+        """Отправляет Wake on LAN пакет на указанный MAC-адрес."""
+        if not self.login():
+            return False, "Authentication failed"
+
+        endpoint = "rci/ip/hotspot/wake"
+
+        data = {"mac": mac}
+
+        response = self.keen_request(endpoint, data=data)
+
+        if response and response.status_code == 200:
+            try:
+                result = response.json()
+                # Проверяем успешность операции
+                if result and "status" in result:
+                    status_list = result["status"]
+                    if isinstance(status_list, list) and len(status_list) > 0:
+                        message = status_list[0].get("message", "WoL sent successfully")
+                        return True, message
+                return True, "WoL sent successfully"
+            except Exception as e:
+                return False, f"Error parsing response: {e}"
+        else:
+            return False, "Request failed"

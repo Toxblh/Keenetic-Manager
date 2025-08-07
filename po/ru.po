@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-22 16:29+0100\n"
+"POT-Creation-Date: 2025-08-07 10:16+0100\n"
 "PO-Revision-Date: 2025-06-22 16:30+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -144,7 +144,11 @@ msgstr "Это устройство"
 msgid "VPN"
 msgstr "VPN"
 
-#: src/router_manager.py:140 src/router_manager.py:165
+#: src/router_manager.py:140
+msgid "Clients"
+msgstr "Клиенты"
+
+#: src/router_manager.py:165
 msgid "Online Clients"
 msgstr "Клиенты онлайн"
 
