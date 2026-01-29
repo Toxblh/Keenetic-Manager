@@ -70,6 +70,36 @@ class KeeneticRouter:
             print(_("Request error with router {name}: {error}").format(name=self.name, error=e))
             return None
 
+    def get_keendns_urls(self):
+        if not self.login():
+            return None
+
+        endpoint ="rci/ip/http/ssl/acme/list/certificate"
+
+        response = self.keen_request(endpoint)
+        if response and response.status_code == 200:
+            keendns_info = response.json()
+            urls = [x.get("domain") for x in keendns_info]
+            return urls
+        else:
+            print(_("Error retrieving KeenDNS URLs."))
+            return None
+
+    def get_network_ip(self):
+        if not self.login():
+            return None
+
+        endpoint = "rci/sc/interface/Bridge0/ip/address/address"
+
+        response = self.keen_request(endpoint)
+        if response and response.status_code == 200:
+            network_info = response.json()
+            ip = network_info.get("address", None)
+            return ip
+        else:
+            print(_("Error retrieving network IP."))
+            return None
+
     def get_policies(self):
         if not self.login():
             return {}
