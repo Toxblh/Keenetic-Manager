@@ -147,19 +147,29 @@ class AddEditRouterDialog(Adw.Window):
                         self.show_error(_("Please check your address, login and password."))
                     GLib.idle_add(show_auth_err)
                     return
+                network_ip = router.get_network_ip()
+                keendns_urls = router.get_keendns_urls()
                 # Если всё хорошо, сохраняем (в главном потоке)
                 def save():
                     if self.router_info:
                         self.router_info['name'] = name
                         self.router_info['address'] = address
                         self.router_info['login'] = login
+                        if network_ip is not None:
+                            self.router_info['network_ip'] = network_ip
+                        if keendns_urls is not None:
+                            self.router_info['keendns_urls'] = keendns_urls
                         keyring.set_password("router_manager", name, password)
                     else:
                         router_info = {
                             'name': name,
                             'address': address,
-                            'login': login
+                            'login': login,
                         }
+                        if network_ip is not None:
+                            router_info['network_ip'] = network_ip
+                        if keendns_urls is not None:
+                            router_info['keendns_urls'] = keendns_urls
                         self.parent.routers.append(router_info)
                         self.parent.router_combo.append_text(name)
                         keyring.set_password("router_manager", name, password)

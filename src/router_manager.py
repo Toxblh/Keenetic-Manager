@@ -11,6 +11,7 @@ import keyring
 from gi.repository import Adw, Gtk, Gio
 import gi
 from keyring.errors import PasswordDeleteError
+import threading
 
 from .me import show_me
 from .vpn import show_vpn_clients
@@ -52,9 +53,11 @@ class RouterManager(Adw.ApplicationWindow):
     # Список роутеров
     routers = []
     current_router = None
+    migration_done = False
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.keendns_checked = set()
 
         # Добавляем кнопки в боковую панель
         self.add_side_panel_buttons()
@@ -64,6 +67,7 @@ class RouterManager(Adw.ApplicationWindow):
 
         # Загружаем роутеры из файла при запуске
         self.routers = load_routers()
+        self.migrate_router_metadata()
 
         # Если есть загруженные роутеры, добавляем их в ComboBox
         if self.routers:
@@ -79,6 +83,74 @@ class RouterManager(Adw.ApplicationWindow):
                 password,
                 first_router_info['name'],
             )
+
+    def migrate_router_metadata(self, for_router=None):
+        if self.migration_done:
+            return
+
+        def needs_migration(router_info):
+            return (
+                ('network_ip' not in router_info or router_info.get('network_ip') is None)
+                or ('keendns_urls' not in router_info or router_info.get('keendns_urls') is None)
+                or (router_info.get('keendns_urls') == [] and router_info.get('network_ip') is None)
+            )
+
+        def wants_dns_retry(router_info):
+            return (
+                router_info.get('keendns_urls') == []
+                and router_info.get('network_ip') is not None
+                and router_info.get('name') not in self.keendns_checked
+            )
+
+        pool = [for_router] if for_router else self.routers
+        missing = [r for r in pool if needs_migration(r) or wants_dns_retry(r)]
+
+        if not missing:
+            if not for_router:
+                self.migration_done = True
+            return
+
+        def migrate():
+            changed = False
+            for router_info in missing:
+                name = router_info.get('name')
+                password = keyring.get_password(
+                    "router_manager", router_info['name'])
+                if not password:
+                    continue
+                router = KeeneticRouter(
+                    router_info['address'],
+                    router_info['login'],
+                    password,
+                    router_info['name'],
+                )
+                prev_network_ip = router_info.get('network_ip')
+                retry_dns_once = wants_dns_retry(router_info)
+                if (
+                    'keendns_urls' not in router_info
+                    or router_info.get('keendns_urls') is None
+                    or (router_info.get('keendns_urls') == [] and prev_network_ip is None)
+                    or retry_dns_once
+                ):
+                    keendns_urls = router.get_keendns_urls()
+                    if retry_dns_once and name:
+                        self.keendns_checked.add(name)
+                    if keendns_urls is not None:
+                        router_info['keendns_urls'] = keendns_urls
+                        changed = True
+                if 'network_ip' not in router_info or router_info.get('network_ip') is None:
+                    network_ip = router.get_network_ip()
+                    if network_ip is not None:
+                        router_info['network_ip'] = network_ip
+                        changed = True
+            if changed:
+                save_routers(self.routers)
+
+            self.migration_done = not any(
+                needs_migration(r) for r in self.routers
+            )
+
+        threading.Thread(target=migrate, daemon=True).start()
 
     def update_current_page(self):
         """Обновляет содержимое текущей страницы согласно выбранному роутеру и активной вкладке."""
@@ -120,6 +192,7 @@ class RouterManager(Adw.ApplicationWindow):
                     password,
                     router_info["name"],
                 )
+                self.migrate_router_metadata(for_router=router_info)
                 print(_("Selected router: {router_name}").format(
                     router_name=router_info['name']))
 
@@ -286,4 +359,3 @@ class RouterManager(Adw.ApplicationWindow):
                 self.router_combo.set_active(0)
         else:
             self.current_router = None
-

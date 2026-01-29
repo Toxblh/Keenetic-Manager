@@ -20,7 +20,7 @@ class KeeneticRouter:
         try:
             # Начальный запрос для получения необходимых заголовков
             auth_url = f"{self.base_url}/auth"
-            initial_response = self.session.get(auth_url, timeout=5)
+            initial_response = self.session.get(auth_url, timeout=2)
 
             # Проверяем, требуется ли аутентификация
             if initial_response.status_code == 401:
@@ -89,7 +89,7 @@ class KeeneticRouter:
         if not self.login():
             return None
 
-        endpoint = "rci/sc/interface/Bridge0/ip/address/address"
+        endpoint = "rci/sc/interface/Bridge0/ip/address"
 
         response = self.keen_request(endpoint)
         if response and response.status_code == 200:
