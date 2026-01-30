@@ -8,10 +8,12 @@ from .utils import (
 from .dialogs import AddEditRouterDialog
 from .keenetic_router import KeeneticRouter
 import keyring
-from gi.repository import Adw, Gtk, Gio
+from gi.repository import Adw, Gtk, Gio, GLib
 import gi
 from keyring.errors import PasswordDeleteError
 import threading
+import ipaddress
+import netifaces
 
 from .me import show_me
 from .vpn import show_vpn_clients
@@ -71,18 +73,125 @@ class RouterManager(Adw.ApplicationWindow):
 
         # Если есть загруженные роутеры, добавляем их в ComboBox
         if self.routers:
+            local_networks = self.get_local_networks()
+            selected_index = 0
             for router_info in self.routers:
                 self.router_combo.append_text(router_info['name'])
-            self.router_combo.set_active(0)
-            first_router_info = self.routers[0]
-            password = keyring.get_password(
-                "router_manager", first_router_info['name'])
-            self.current_router = KeeneticRouter(
-                first_router_info['address'],
-                first_router_info['login'],
+            for i, router_info in enumerate(self.routers):
+                if self.is_router_in_local_network(router_info, local_networks):
+                    selected_index = i
+                    break
+            self.router_combo.set_active(selected_index)
+            selected_router = self.routers[selected_index]
+            self.select_router(selected_router)
+
+    def get_local_networks(self):
+        networks = []
+        for interface in netifaces.interfaces():
+            addrs = netifaces.ifaddresses(interface)
+            if netifaces.AF_INET not in addrs:
+                continue
+            for addr_info in addrs[netifaces.AF_INET]:
+                ip = addr_info.get('addr')
+                netmask = addr_info.get('netmask')
+                if not ip or not netmask:
+                    continue
+                if ip.startswith("127."):
+                    continue
+                try:
+                    networks.append(ipaddress.IPv4Interface(
+                        f"{ip}/{netmask}"
+                    ).network)
+                except ValueError:
+                    continue
+        return networks
+
+    def is_router_in_local_network(self, router_info, local_networks):
+        ip = router_info.get('network_ip')
+        if not ip:
+            return False
+        try:
+            addr = ipaddress.ip_address(ip)
+        except ValueError:
+            return False
+        return any(addr in net for net in local_networks)
+
+    def resolve_router_connection(self, router_info, local_networks, password):
+        in_local = self.is_router_in_local_network(
+            router_info, local_networks
+        )
+        keendns_urls = router_info.get('keendns_urls') or []
+        network_ip = router_info.get('network_ip')
+        name = router_info.get('name')
+        login = router_info.get('login')
+
+        def make_router(address):
+            print(_("Using address: {address}").format(address=address))
+            return KeeneticRouter(
+                address,
+                login,
                 password,
-                first_router_info['name'],
+                name,
             )
+
+        if not keendns_urls and not network_ip:
+            address = router_info.get('address')
+            return make_router(address)
+
+        if in_local and network_ip:
+            return make_router(network_ip)
+
+        if network_ip:
+            router = make_router(network_ip)
+            if router.login():
+                return router
+
+        if keendns_urls:
+            address = router_info.get('address')
+            address_host = address
+            if address and address.startswith("http"):
+                address_host = address.split("://", 1)[1].split("/", 1)[0]
+            if address_host in keendns_urls:
+                url = address if address.startswith("http") else f"https://{address_host}"
+                return make_router(url)
+
+            def is_hash_domain(domain):
+                return domain.endswith(".keenetic.io")
+
+            preferred = next(
+                (d for d in keendns_urls if not is_hash_domain(d)),
+                keendns_urls[0],
+            )
+            url = preferred if preferred.startswith("http") else f"https://{preferred}"
+            return make_router(url)
+
+        if network_ip:
+            return make_router(network_ip)
+
+        address = router_info.get('address')
+        return make_router(address)
+
+    def select_router(self, router_info):
+        password = keyring.get_password(
+            "router_manager", router_info["name"])
+        local_networks = self.get_local_networks()
+
+        def resolve():
+            router = self.resolve_router_connection(
+                router_info, local_networks, password
+            )
+
+            def apply():
+                if self.router_combo.get_active_text() != router_info["name"]:
+                    return False
+                self.current_router = router
+                self.migrate_router_metadata(for_router=router_info)
+                self.update_current_page()
+                return False
+
+            GLib.idle_add(apply)
+
+        threading.Thread(target=resolve, daemon=True).start()
 
     def migrate_router_metadata(self, for_router=None):
         if self.migration_done:
@@ -184,20 +293,11 @@ class RouterManager(Adw.ApplicationWindow):
             router_info = next(
                 (r for r in self.routers if r["name"] == router_name), None)
             if router_info:
-                password = keyring.get_password(
-                    "router_manager", router_info["name"])
-                self.current_router = KeeneticRouter(
-                    router_info["address"],
-                    router_info["login"],
-                    password,
-                    router_info["name"],
-                )
-                self.migrate_router_metadata(for_router=router_info)
+                self.select_router(router_info)
                 print(_("Selected router: {router_name}").format(
                     router_name=router_info['name']))
 
-        # Обновляем текущую страницу после смены роутера
-        self.update_current_page()
+        # Обновление происходит после успешного выбора подключения.
 
     def add_side_panel_buttons(self):
         # Кнопка Я
