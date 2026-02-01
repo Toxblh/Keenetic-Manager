@@ -69,12 +69,6 @@
                         <signal name="changed" handler="on_router_changed"/>
                       </object>
                     </child>
-                    <child type="end">
-                      <object class="GtkButton" id="add_router_button">
-                        <property name="icon-name">list-add-symbolic</property>
-                        <signal name="clicked" handler="on_add_router_clicked"/>
-                      </object>
-                    </child>
                     <child>
                       <object class="GtkButton" id="edit_router_button">
                         <property name="icon-name">document-edit-symbolic</property>
@@ -85,6 +79,19 @@
                       <object class="GtkButton" id="delete_router_button">
                         <property name="icon-name">user-trash-symbolic</property>
                         <signal name="clicked" handler="on_delete_router_clicked"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="connected_by">
+                        <style>
+                          <class name="dim-label"/>
+                        </style>
+                      </object>
+                    </child>
+                    <child type="end">
+                      <object class="GtkButton" id="add_router_button">
+                        <property name="icon-name">list-add-symbolic</property>
+                        <signal name="clicked" handler="on_add_router_clicked"/>
                       </object>
                     </child>
                   </object>

@@ -51,6 +51,7 @@ class RouterManager(Adw.ApplicationWindow):
     edit_router_button = Gtk.Template.Child()
     delete_router_button = Gtk.Template.Child()
     menu_button = Gtk.Template.Child()
+    connected_by = Gtk.Template.Child()
 
     # Список роутеров
     routers = []
@@ -127,6 +128,9 @@ class RouterManager(Adw.ApplicationWindow):
 
         def make_router(address):
             print(_("Using address: {address}").format(address=address))
+            self.connected_by.set_use_markup(True)
+            pre_url = "http://" if not address.startswith("http") else ""
+            self.connected_by.set_markup(f'<a href="{pre_url}{address}">{address}</a>')
             return KeeneticRouter(
                 address,
                 login,
