@@ -141,13 +141,13 @@ def show_me(self):
                 return value
 
             row = 0
-            add_info_row(row, "Name:", interface)
+            add_info_row(row, _("Name:"), interface)
             row += 1
-            add_info_row(row, "Type:", iface_type)
+            add_info_row(row, _("Type:"), iface_type)
             row += 1
-            state_markup = '<span foreground="green">●</span> Online' if online else '<span foreground="gray">●</span> Offline'
+            state_markup = '<span foreground="green">●</span> ' + _("Online") if online else '<span foreground="gray">●</span> ' + _("Offline")
             state_label = add_info_row(
-                row, "State:", state_markup, markup=True)
+                row, _("State:"), state_markup, markup=True)
             row += 1
             ip = get_ip(interface)
             add_info_row(row, "IP:", ip)
@@ -161,12 +161,12 @@ def show_me(self):
                     break
             if policy_human is None:
                 if client_policy is None:
-                    policy_human = "Default"
+                    policy_human = _("Default")
                 elif client_deny:
-                    policy_human = "Blocked"
+                    policy_human = _("Blocked")
                 else:
                     policy_human = str(client_policy)
-            policy_label = add_info_row(row, "Policy:", policy_human);
+            policy_label = add_info_row(row, _("Policy:"), policy_human);
             row += 1
 
             traffic_label.set_text("↓ 0 KB/s  ↑ 0 KB/s")
@@ -218,10 +218,10 @@ def show_me(self):
                             max(len(w['usage_history']), 1)
                         if avg_speed > 1024 * 5:
                             w['active_label'].set_markup(
-                                '<span foreground="limegreen">Active now</span>')
+                                '<span foreground="limegreen">' + _("Active now") + '</span>')
                         elif state == "up":
                             w['active_label'].set_markup(
-                                '<span foreground="gray">Idle</span>')
+                                '<span foreground="gray">' + _("Idle") + '</span>')
                         else:
                             w['active_label'].set_markup('')
                     GLib.idle_add(update_labels)

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keeneticmanager\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-07 10:16+0100\n"
+"POT-Creation-Date: 2026-02-02 00:56+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -82,6 +82,47 @@ msgstr ""
 msgid "Loading..."
 msgstr ""
 
+#: src/pages/me/me.py:144 src/widgets/dialogs.py:29
+msgid "Name:"
+msgstr ""
+
+#: src/pages/me/me.py:146
+msgid "Type:"
+msgstr ""
+
+#: src/pages/me/me.py:148
+msgid "Online"
+msgstr ""
+
+#: src/pages/me/me.py:148
+msgid "Offline"
+msgstr ""
+
+#: src/pages/me/me.py:150
+msgid "State:"
+msgstr ""
+
+#. Default option
+#: src/pages/me/me.py:164 src/widgets/policy_toggle.py:29
+msgid "Default"
+msgstr ""
+
+#: src/pages/me/me.py:166
+msgid "Blocked"
+msgstr ""
+
+#: src/pages/me/me.py:169
+msgid "Policy:"
+msgstr ""
+
+#: src/pages/me/me.py:221
+msgid "Active now"
+msgstr ""
+
+#: src/pages/me/me.py:224
+msgid "Idle"
+msgstr ""
+
 #: src/pages/settings.py:11
 msgid "Settings"
 msgstr ""
@@ -125,73 +166,78 @@ msgstr ""
 msgid "Add Peer"
 msgstr ""
 
-#: src/router_manager.py:123
+#: src/router_manager.py:130
+#, python-brace-format
+msgid "Using address: {address}"
+msgstr ""
+
+#: src/router_manager.py:301
 #, python-brace-format
 msgid "Selected router: {router_name}"
 msgstr ""
 
-#: src/router_manager.py:132 src/router_manager.py:154
+#: src/router_manager.py:309 src/router_manager.py:331
 msgid "Me"
 msgstr ""
 
-#: src/router_manager.py:136 src/router_manager.py:159
+#: src/router_manager.py:313 src/router_manager.py:336
 msgid "VPN"
 msgstr ""
 
-#: src/router_manager.py:140
+#: src/router_manager.py:317
 msgid "Clients"
 msgstr ""
 
-#: src/router_manager.py:165
+#: src/router_manager.py:342
 msgid "Online Clients"
 msgstr ""
 
-#: src/router_manager.py:171
+#: src/router_manager.py:348
 msgid "Wireguard Server"
 msgstr ""
 
-#: src/router_manager.py:178
+#: src/router_manager.py:355
 msgid "Quick Settings"
 msgstr ""
 
 #. Диалог для добавления роутера
-#: src/router_manager.py:183
+#: src/router_manager.py:360
 msgid "Add Router"
 msgstr ""
 
-#: src/router_manager.py:195
+#: src/router_manager.py:372
 msgid "Edit Router"
 msgstr ""
 
-#: src/router_manager.py:198
+#: src/router_manager.py:375
 msgid "Please select a router to edit."
 msgstr ""
 
-#: src/router_manager.py:225
+#: src/router_manager.py:402
 #, python-brace-format
 msgid "Are you sure you want to delete the router '{router_name}'?"
 msgstr ""
 
-#: src/router_manager.py:230
+#: src/router_manager.py:407
 msgid "Please select a router to delete."
 msgstr ""
 
-#: src/router_manager.py:238
+#: src/router_manager.py:415
 #, python-brace-format
 msgid "Default policy applied to client {client_mac}"
 msgstr ""
 
-#: src/router_manager.py:243
+#: src/router_manager.py:420
 #, python-brace-format
 msgid "Failed to apply the default policy to client {client_mac}"
 msgstr ""
 
-#: src/router_manager.py:252
+#: src/router_manager.py:429
 #, python-brace-format
 msgid "Policy {policy_name} applied to client {client_mac}"
 msgstr ""
 
-#: src/router_manager.py:257
+#: src/router_manager.py:434
 #, python-brace-format
 msgid "Failed to apply policy {policy_name} to client {client_mac}"
 msgstr ""
@@ -206,10 +252,6 @@ msgstr ""
 
 #: src/router_manager_app.py:51
 msgid "translator-credits"
-msgstr ""
-
-#: src/widgets/dialogs.py:29
-msgid "Name:"
 msgstr ""
 
 #: src/widgets/dialogs.py:34
@@ -236,16 +278,45 @@ msgstr ""
 msgid "Save"
 msgstr ""
 
-#: src/widgets/dialogs.py:129
+#: src/widgets/dialogs.py:91
+msgid "Router Info"
+msgstr ""
+
+#: src/widgets/dialogs.py:95
+msgid "KeenDNS:"
+msgstr ""
+
+#: src/widgets/dialogs.py:104
+msgid "Router IP:"
+msgstr ""
+
+#: src/widgets/dialogs.py:150
 msgid "Please fill in all fields."
 msgstr ""
 
-#: src/widgets/dialogs.py:136
+#: src/widgets/dialogs.py:157
 msgid "A router with this name already exists."
 msgstr ""
 
-#: src/widgets/dialogs.py:147
+#: src/widgets/dialogs.py:168
 msgid "Please check your address, login and password."
+msgstr ""
+
+#: src/widgets/policy_toggle.py:26
+msgid "Block"
+msgstr ""
+
+#: src/widgets/policy_toggle.py:26
+msgid "Block access to the Internet"
+msgstr ""
+
+#: src/widgets/policy_toggle.py:29
+msgid "Apply Default policy"
+msgstr ""
+
+#: src/widgets/policy_toggle.py:34
+#, python-brace-format
+msgid "Apply {policy_name} policy"
 msgstr ""
 
 #: src/window.ui:8

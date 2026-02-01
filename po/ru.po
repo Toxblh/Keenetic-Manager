@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-07 10:16+0100\n"
-"PO-Revision-Date: 2025-06-22 16:30+0100\n"
+"POT-Creation-Date: 2026-02-02 00:56+0300\n"
+"PO-Revision-Date: 2026-02-02 00:57+0300\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "Language: ru\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Poedit 3.6\n"
+"X-Generator: Poedit 3.8\n"
 
 #: data/ru.toxblh.KeeneticManager.desktop.in:3
 #: data/ru.toxblh.KeeneticManager.metainfo.xml.in:7
@@ -88,6 +88,47 @@ msgstr "Пожалуйста, выберите роутер."
 msgid "Loading..."
 msgstr "Загрузка..."
 
+#: src/pages/me/me.py:144 src/widgets/dialogs.py:29
+msgid "Name:"
+msgstr "Название:"
+
+#: src/pages/me/me.py:146
+msgid "Type:"
+msgstr "Тип:"
+
+#: src/pages/me/me.py:148
+msgid "Online"
+msgstr "Онлайн"
+
+#: src/pages/me/me.py:148
+msgid "Offline"
+msgstr "Офлайн"
+
+#: src/pages/me/me.py:150
+msgid "State:"
+msgstr "Состояние:"
+
+#. Default option
+#: src/pages/me/me.py:164 src/widgets/policy_toggle.py:29
+msgid "Default"
+msgstr "Основная"
+
+#: src/pages/me/me.py:166
+msgid "Blocked"
+msgstr "Заблокирован"
+
+#: src/pages/me/me.py:169
+msgid "Policy:"
+msgstr "Политика:"
+
+#: src/pages/me/me.py:221
+msgid "Active now"
+msgstr "Активный"
+
+#: src/pages/me/me.py:224
+msgid "Idle"
+msgstr "Простаивает"
+
 #: src/pages/settings.py:11
 msgid "Settings"
 msgstr "Настройки"
@@ -115,7 +156,7 @@ msgstr "Не удалось получить настройки VPN сервер
 #: src/pages/wg_server.py:33
 #, python-brace-format
 msgid "Peer: {peer_name}"
-msgstr "Peer: {peer_name}"
+msgstr "Пир: {peer_name}"
 
 #: src/pages/wg_server.py:39
 msgid "Download Configuration"
@@ -131,73 +172,78 @@ msgstr "Показать QR-код"
 msgid "Add Peer"
 msgstr "Добавить пира"
 
-#: src/router_manager.py:123
+#: src/router_manager.py:130
+#, python-brace-format
+msgid "Using address: {address}"
+msgstr "Использован адрес: {address}"
+
+#: src/router_manager.py:301
 #, python-brace-format
 msgid "Selected router: {router_name}"
 msgstr "Выбран роутер: {router_name}"
 
-#: src/router_manager.py:132 src/router_manager.py:154
+#: src/router_manager.py:309 src/router_manager.py:331
 msgid "Me"
 msgstr "Это устройство"
 
-#: src/router_manager.py:136 src/router_manager.py:159
+#: src/router_manager.py:313 src/router_manager.py:336
 msgid "VPN"
 msgstr "VPN"
 
-#: src/router_manager.py:140
+#: src/router_manager.py:317
 msgid "Clients"
 msgstr "Клиенты"
 
-#: src/router_manager.py:165
+#: src/router_manager.py:342
 msgid "Online Clients"
 msgstr "Клиенты онлайн"
 
-#: src/router_manager.py:171
+#: src/router_manager.py:348
 msgid "Wireguard Server"
 msgstr "Wireguard Сервер"
 
-#: src/router_manager.py:178
+#: src/router_manager.py:355
 msgid "Quick Settings"
 msgstr "Быстрые настройки"
 
 #. Диалог для добавления роутера
-#: src/router_manager.py:183
+#: src/router_manager.py:360
 msgid "Add Router"
 msgstr "Добавить роутер"
 
-#: src/router_manager.py:195
+#: src/router_manager.py:372
 msgid "Edit Router"
 msgstr "Редактировать роутер"
 
-#: src/router_manager.py:198
+#: src/router_manager.py:375
 msgid "Please select a router to edit."
 msgstr "Пожалуйста, выберите роутер для редактирования."
 
-#: src/router_manager.py:225
+#: src/router_manager.py:402
 #, python-brace-format
 msgid "Are you sure you want to delete the router '{router_name}'?"
 msgstr "Вы уверены, что хотите удалить роутер '{router_name}'?"
 
-#: src/router_manager.py:230
+#: src/router_manager.py:407
 msgid "Please select a router to delete."
 msgstr "Пожалуйста, выберите роутер для удаления."
 
-#: src/router_manager.py:238
+#: src/router_manager.py:415
 #, python-brace-format
 msgid "Default policy applied to client {client_mac}"
 msgstr "Политика по умолчанию применена к клиенту {client_mac}"
 
-#: src/router_manager.py:243
+#: src/router_manager.py:420
 #, python-brace-format
 msgid "Failed to apply the default policy to client {client_mac}"
 msgstr "Не удалось применить политику по умолчанию к клиенту {client_mac}"
 
-#: src/router_manager.py:252
+#: src/router_manager.py:429
 #, python-brace-format
 msgid "Policy {policy_name} applied to client {client_mac}"
 msgstr "Политика {policy_name} применена к клиенту {client_mac}"
 
-#: src/router_manager.py:257
+#: src/router_manager.py:434
 #, python-brace-format
 msgid "Failed to apply policy {policy_name} to client {client_mac}"
 msgstr "Не удалось применить политику {policy_name} к клиенту {client_mac}"
@@ -213,10 +259,6 @@ msgstr "Поддержать"
 #: src/router_manager_app.py:51
 msgid "translator-credits"
 msgstr "переводчики"
-
-#: src/widgets/dialogs.py:29
-msgid "Name:"
-msgstr "Название:"
 
 #: src/widgets/dialogs.py:34
 msgid "Address*:"
@@ -242,17 +284,46 @@ msgstr "Отмена"
 msgid "Save"
 msgstr "Сохранить"
 
-#: src/widgets/dialogs.py:129
+#: src/widgets/dialogs.py:91
+msgid "Router Info"
+msgstr "Информация о роутере"
+
+#: src/widgets/dialogs.py:95
+msgid "KeenDNS:"
+msgstr "KeenDNS:"
+
+#: src/widgets/dialogs.py:104
+msgid "Router IP:"
+msgstr "IP роутера:"
+
+#: src/widgets/dialogs.py:150
 msgid "Please fill in all fields."
 msgstr "Пожалуйста, заполните все поля."
 
-#: src/widgets/dialogs.py:136
+#: src/widgets/dialogs.py:157
 msgid "A router with this name already exists."
 msgstr "Роутер с таким именем уже существует."
 
-#: src/widgets/dialogs.py:147
+#: src/widgets/dialogs.py:168
 msgid "Please check your address, login and password."
 msgstr "Пожалуйста, проверьте ваш адрес, логин и пароль."
+
+#: src/widgets/policy_toggle.py:26
+msgid "Block"
+msgstr "Инет выкл"
+
+#: src/widgets/policy_toggle.py:26
+msgid "Block access to the Internet"
+msgstr "Блокирует доступ в интернет"
+
+#: src/widgets/policy_toggle.py:29
+msgid "Apply Default policy"
+msgstr "Применить политику по умолчанию"
+
+#: src/widgets/policy_toggle.py:34
+#, python-brace-format
+msgid "Apply {policy_name} policy"
+msgstr "Применить {policy_name} политику"
 
 #: src/window.ui:8
 msgid "About"
@@ -295,14 +366,8 @@ msgstr ""
 #~ msgid "Error retrieving WireGuard settings."
 #~ msgstr "Ошибка получения настроек WireGuard."
 
-#~ msgid "Router Manager"
-#~ msgstr "Менеджер роутеров"
-
 #~ msgid "Delete Router"
 #~ msgstr "Удалить роутер"
 
 #~ msgid "VPN Server Settings"
 #~ msgstr "Настройки VPN сервера"
-
-#~ msgid "Default"
-#~ msgstr "По умолчанию"

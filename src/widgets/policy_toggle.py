@@ -23,15 +23,15 @@ class PolicyToggleWidget(Gtk.Box):
         self.toggle_group.remove_all()
         # Block option
         block_toggle = Adw.Toggle(
-            label="Block", name="Block", tooltip="Block access to the Internet")
+            label=_("Block"), name="Block", tooltip=_("Block access to the Internet"))
         self.toggle_group.add(block_toggle)
         # Default option
-        default_toggle = Adw.Toggle(label="Default", name="Default")
+        default_toggle = Adw.Toggle(label=_("Default"), name="Default", tooltip=_("Apply Default policy"))
         self.toggle_group.add(default_toggle)
         # Policy options
         for policy_name, policy_desc in self.policies:
             toggle = Adw.Toggle(label=policy_desc, name=policy_name,
-                                tooltip=f"Apply {policy_name} policy")
+                                tooltip=_("Apply {policy_name} policy").format(policy_name=policy_name))
             self.toggle_group.add(toggle)
         self.append(self.toggle_group)
         self._set_active_from_state()
