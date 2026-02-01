@@ -87,6 +87,27 @@ class AddEditRouterDialog(Adw.Window):
                 "router_manager", self.router_info['name'])
             if password and isinstance(password, str):
                 self.password_entry.set_text(password)
+
+            info_label = Gtk.Label(label=_("Router Info"))
+            info_label.get_style_context().add_class("dim-label")
+            grid.attach(info_label, 1, 6, 1, 1)
+
+            dns_label = Gtk.Label(label=_("KeenDNS:"))
+            grid.attach(dns_label, 0, 7, 1, 1)
+
+            urls = self.router_info['keendns_urls']
+            self.dns_entry = Gtk.Label(label="\n".join(urls))
+            self.dns_entry.get_style_context().add_class("dim-label")
+            grid.attach(self.dns_entry, 1, 7, 1, 1)
+
+
+            ip_label = Gtk.Label(label=_("Router IP:"))
+            grid.attach(ip_label, 0, 8, 1, 1)
+
+            self.ip_entry = Gtk.Label(label=self.router_info['network_ip'])
+            self.ip_entry.get_style_context().add_class("dim-label")
+            grid.attach(self.ip_entry, 1, 8, 1, 1)
+
         else:
             try:
                 gws = netifaces.gateways()
