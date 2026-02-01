@@ -58,24 +58,36 @@
     </screenshots>
 
     <releases>
+        <release version="0.5.0" date="2026-02-02">
+            <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.5.0</url>
+            <description translate="no">
+                <p>Enhanced router connectivity</p>
+                <ul>
+                    <li>Automatically connects to routers from the list when on the same network</li>
+                    <li>Smarter detection of available connection paths (IP or domain)</li>
+                    <li>Optimized connection priority with preference for direct IP access</li>
+                    <li>Seamless configuration migration</li>
+                </ul>
+            </description>
+        </release>
         <release version="0.4.0" date="2025-08-07">
             <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.4.0</url>
             <description translate="no">
-            <p>Added WoL button in clients</p>
-            <ul>
-                <li>Clients present now and offline</li>
-                <li>All clients could be wake on LAN even if online</li>
-            </ul>
+                <p>Added WoL button in clients</p>
+                <ul>
+                    <li>Clients present now and offline</li>
+                    <li>All clients could be wake on LAN even if online</li>
+                </ul>
             </description>
         </release>
         <release version="0.3.2" date="2025-06-22">
             <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.3.2</url>
             <description translate="no">
-            <p>Improved management of multiple routers</p>
-            <ul>
-                <li>Auto-reload when selecting a different router</li>
-                <li>Adding and editing routers will trigger data checks</li>
-            </ul>
+                <p>Improved management of multiple routers</p>
+                <ul>
+                    <li>Auto-reload when selecting a different router</li>
+                    <li>Adding and editing routers will trigger data checks</li>
+                </ul>
             </description>
         </release>
         <release version="0.3.1" date="2025-06-14">

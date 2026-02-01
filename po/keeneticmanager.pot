@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keeneticmanager\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-02 00:56+0300\n"
+"POT-Creation-Date: 2026-02-02 01:37+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -243,7 +243,7 @@ msgid "Failed to apply policy {policy_name} to client {client_mac}"
 msgstr ""
 
 #: src/router_manager_app.py:47
-msgid "© 2024-2025 Anton Palgunov (Toxblh)"
+msgid "© 2024-2026 Anton Palgunov (Toxblh)"
 msgstr ""
 
 #: src/router_manager_app.py:50

@@ -44,7 +44,7 @@ class RouterManagerApplication(Adw.Application):
             developer_name=_('Anton Palgunov (Toxblh)'),
             version=self.version,
             developers=[_('Anton Palgunov (Toxblh)')],
-            copyright=_('© 2024-2025 Anton Palgunov (Toxblh)')
+            copyright=_('© 2024-2026 Anton Palgunov (Toxblh)')
         )
         about.add_link("GitHub", "https://github.com/Toxblh/Keenetic-Manager")
         about.add_link(_("Donate"), "https://toxblh.ru/support")

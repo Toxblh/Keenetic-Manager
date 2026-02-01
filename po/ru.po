@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-02 00:56+0300\n"
-"PO-Revision-Date: 2026-02-02 00:57+0300\n"
+"POT-Creation-Date: 2026-02-02 01:37+0300\n"
+"PO-Revision-Date: 2026-02-02 01:37+0300\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "Language: ru\n"
@@ -249,8 +249,8 @@ msgid "Failed to apply policy {policy_name} to client {client_mac}"
 msgstr "Не удалось применить политику {policy_name} к клиенту {client_mac}"
 
 #: src/router_manager_app.py:47
-msgid "© 2024-2025 Anton Palgunov (Toxblh)"
-msgstr "© 2024-2025Антон Пальгунов (Toxblh)"
+msgid "© 2024-2026 Anton Palgunov (Toxblh)"
+msgstr "© 2024-2026 Антон Пальгунов (Toxblh)"
 
 #: src/router_manager_app.py:50
 msgid "Donate"
