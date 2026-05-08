@@ -36,8 +36,10 @@ localedir = '@localedir@'
 
 sys.path.insert(1, pkgdatadir)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
-locale.bindtextdomain('keeneticmanager', localedir)
-locale.textdomain('keeneticmanager')
+if hasattr(locale, 'bindtextdomain'):
+    locale.bindtextdomain('keeneticmanager', localedir)
+    locale.textdomain('keeneticmanager')
+gettext.bindtextdomain('keeneticmanager', localedir)
 gettext.install('keeneticmanager', localedir)
 
 if __name__ == '__main__':

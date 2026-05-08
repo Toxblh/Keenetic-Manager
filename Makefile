@@ -14,9 +14,20 @@ export PRINT_HELP_PYSCRIPT
 help:
 	@python3 -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+BREW_PREFIX := $(shell brew --prefix 2>/dev/null || echo /opt/homebrew)
+EXTRA_ENV := PATH="$(BREW_PREFIX)/bin:$$PATH" \
+	GSETTINGS_SCHEMA_DIR="$$(pwd)/$(BUILD)/testdir/share/glib-2.0/schemas" \
+	XDG_DATA_DIRS="$(BREW_PREFIX)/share:/usr/share"
+else
+EXTRA_ENV :=
+endif
+
 setup:  ## Setup build folder.
 	mkdir -p $(BUILD)
-	meson setup . $(BUILD)
+	$(EXTRA_ENV) meson setup . $(BUILD)
 
 translate:
 	$(MAKE) setup
@@ -26,16 +37,16 @@ translate:
 local:  ## Configure a local build.
 	$(MAKE) clean
 	$(MAKE) setup
-	meson configure $(BUILD) -Dprefix=$$(pwd)/$(BUILD)/testdir -Dbuildtype=debug
-	ninja -C $(BUILD) install
+	$(EXTRA_ENV) meson configure $(BUILD) -Dprefix=$$(pwd)/$(BUILD)/testdir -Dbuildtype=debug
+	$(EXTRA_ENV) ninja -C $(BUILD) install
 
 start:
 	$(MAKE) local
-	LC_ALL=en_GB.UTF-8 $(BUILD)/testdir/bin/keeneticmanager
+	$(EXTRA_ENV) LC_ALL=en_GB.UTF-8 $(BUILD)/testdir/bin/keeneticmanager
 
 start-ru:
 	$(MAKE) local
-	LC_ALL=ru_RU.UTF-8 $(BUILD)/testdir/bin/keeneticmanager
+	$(EXTRA_ENV) LC_ALL=ru_RU.UTF-8 $(BUILD)/testdir/bin/keeneticmanager
 
 install:  ## Install system-wide.
 	$(MAKE) clean
