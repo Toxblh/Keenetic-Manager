@@ -2,8 +2,6 @@ name: Build macOS
 
 on:
   push:
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -45,8 +43,7 @@ jobs:
 
       - name: Install Python packages
         run: |
-          PY_BIN="$(find /opt/homebrew/bin -name 'python3.*' | sort -V | tail -1)"
-          "$PY_BIN" -m pip install \
+          "$(brew --prefix)/bin/python3" -m pip install \
             requests netifaces keyring \
             --break-system-packages --quiet
 

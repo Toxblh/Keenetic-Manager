@@ -43,9 +43,15 @@ mkdir -p "$MACOS" "$RESOURCES" "$FRAMEWORKS"
 
 # ── 2. Build the app ─────────────────────────────────────────────────────────
 echo "==> Building app (release)..."
-PATH="$BREW/bin:$PATH" command meson configure _build \
-    -Dprefix="$(pwd)/_build/testdir" \
-    -Dbuildtype=release 2>/dev/null || true
+if [ -d "_build" ]; then
+    PATH="$BREW/bin:$PATH" command meson configure _build \
+        -Dprefix="$(pwd)/_build/testdir" \
+        -Dbuildtype=release 2>/dev/null || true
+else
+    PATH="$BREW/bin:$PATH" command meson setup _build \
+        --prefix="$(pwd)/_build/testdir" \
+        --buildtype=release
+fi
 PATH="$BREW/bin:$PATH" ninja -C _build install
 
 # ── 3. Copy app data ─────────────────────────────────────────────────────────
@@ -143,51 +149,54 @@ done
 # ── 7. Copy GTK4 + deps dylibs ───────────────────────────────────────────────
 echo "==> Copying GTK4 dylibs..."
 copy_dylib() {
-    local rel="$1"
-    local src
-    # Try opt/ path first, then lib/
-    src="$BREW/opt/$rel"
-    [ ! -f "$src" ] && src="$BREW/lib/$(basename "$rel")"
-    if [ -f "$src" ]; then
-        cp -n "$src" "$FRAMEWORKS/" 2>/dev/null || true
-        return 0
+    local pkg="$1"   # e.g. "gtk4"
+    local stem="$2"  # e.g. "libgtk-4" (no version, no .dylib)
+    local found=""
+    # Build search list from existing dirs only (find exits 1 on missing paths)
+    local dirs=("$BREW/lib")
+    [ -d "$BREW/opt/$pkg/lib" ] && dirs=("$BREW/opt/$pkg/lib" "${dirs[@]}")
+    found="$(find "${dirs[@]}" -maxdepth 1 -name "${stem}*.dylib" 2>/dev/null \
+        | sort -V | tail -1)" || true
+    if [ -n "$found" ]; then
+        cp -n "$found" "$FRAMEWORKS/" 2>/dev/null || true
+    else
+        echo "  WARNING: not found: $pkg/$stem"
     fi
-    echo "  WARNING: not found: $rel"
 }
 
-copy_dylib "gtk4/lib/libgtk-4.1.dylib"
-copy_dylib "libadwaita/lib/libadwaita-1.0.dylib"
-copy_dylib "glib/lib/libglib-2.0.0.dylib"
-copy_dylib "glib/lib/libgobject-2.0.0.dylib"
-copy_dylib "glib/lib/libgio-2.0.0.dylib"
-copy_dylib "glib/lib/libgmodule-2.0.0.dylib"
-copy_dylib "glib/lib/libgirepository-2.0.0.dylib"
-copy_dylib "pango/lib/libpango-1.0.0.dylib"
-copy_dylib "pango/lib/libpangocairo-1.0.0.dylib"
-copy_dylib "pango/lib/libpangoft2-1.0.0.dylib"
-copy_dylib "cairo/lib/libcairo.2.dylib"
-copy_dylib "cairo/lib/libcairo-gobject.2.dylib"
-copy_dylib "cairo/lib/libcairo-script-interpreter.2.dylib"
-copy_dylib "harfbuzz/lib/libharfbuzz.0.dylib"
-copy_dylib "harfbuzz/lib/libharfbuzz-subset.0.dylib"
-copy_dylib "fribidi/lib/libfribidi.0.dylib"
-copy_dylib "gdk-pixbuf/lib/libgdk_pixbuf-2.0.0.dylib"
-copy_dylib "libepoxy/lib/libepoxy.0.dylib"
-copy_dylib "graphene/lib/libgraphene-1.0.0.dylib"
-copy_dylib "fontconfig/lib/libfontconfig.1.dylib"
-copy_dylib "freetype/lib/libfreetype.6.dylib"
-copy_dylib "gettext/lib/libintl.8.dylib"
-copy_dylib "appstream/lib/libappstream.5.dylib"
-copy_dylib "libpng/lib/libpng16.16.dylib"
-copy_dylib "jpeg-turbo/lib/libjpeg.8.dylib"
-copy_dylib "libtiff/lib/libtiff.6.dylib"
-copy_dylib "webp/lib/libwebp.7.dylib"
-copy_dylib "webp/lib/libwebpdemux.2.dylib"
-copy_dylib "pcre2/lib/libpcre2-8.0.dylib"
-copy_dylib "lzo/lib/liblzo2.2.dylib"
-copy_dylib "pixman/lib/libpixman-1.0.dylib"
-copy_dylib "brotli/lib/libbrotlidec.1.dylib"
-copy_dylib "brotli/lib/libbrotlicommon.1.dylib"
+copy_dylib "gtk4"        "libgtk-4"
+copy_dylib "libadwaita"  "libadwaita-1"
+copy_dylib "glib"        "libglib-2.0"
+copy_dylib "glib"        "libgobject-2.0"
+copy_dylib "glib"        "libgio-2.0"
+copy_dylib "glib"        "libgmodule-2.0"
+copy_dylib "glib"        "libgirepository-2.0"
+copy_dylib "pango"       "libpango-1.0"
+copy_dylib "pango"       "libpangocairo-1.0"
+copy_dylib "pango"       "libpangoft2-1.0"
+copy_dylib "cairo"       "libcairo.2"
+copy_dylib "cairo"       "libcairo-gobject.2"
+copy_dylib "cairo"       "libcairo-script-interpreter"
+copy_dylib "harfbuzz"    "libharfbuzz.0"
+copy_dylib "harfbuzz"    "libharfbuzz-subset"
+copy_dylib "fribidi"     "libfribidi"
+copy_dylib "gdk-pixbuf"  "libgdk_pixbuf-2.0"
+copy_dylib "libepoxy"    "libepoxy"
+copy_dylib "graphene"    "libgraphene-1.0"
+copy_dylib "fontconfig"  "libfontconfig"
+copy_dylib "freetype"    "libfreetype"
+copy_dylib "gettext"     "libintl"
+copy_dylib "appstream"   "libappstream"
+copy_dylib "libpng"      "libpng16"
+copy_dylib "jpeg-turbo"  "libjpeg"
+copy_dylib "libtiff"     "libtiff"
+copy_dylib "webp"        "libwebp.7"
+copy_dylib "webp"        "libwebpdemux"
+copy_dylib "pcre2"       "libpcre2-8"
+copy_dylib "lzo"         "liblzo2"
+copy_dylib "pixman"      "libpixman-1"
+copy_dylib "brotli"      "libbrotlidec"
+copy_dylib "brotli"      "libbrotlicommon"
 
 # Use dylibbundler to recursively collect any remaining transitive deps
 echo "==> Running dylibbundler (collecting transitive dependencies)..."
@@ -229,7 +238,7 @@ done
 
 dylibbundler -b -of \
     -x "$BUNDLED_PY/bin/python$PY_VER" \
-    "${SO_FILES[@]}" \
+    ${SO_FILES[@]+"${SO_FILES[@]}"} \
     -d "$FRAMEWORKS/" \
     -p "@executable_path/../Frameworks/" \
     "${SEARCH_FLAGS[@]}" 2>/dev/null || true
@@ -352,14 +361,29 @@ iconutil -c icns -o "$RESOURCES/keeneticmanager.icns" "$ICONSET_DIR" 2>/dev/null
     && echo "   ICNS created" || echo "   WARNING: iconutil failed, icon will be missing"
 rm -rf "$ICONSET_DIR"
 
-# ── 13. Bundle size summary ───────────────────────────────────────────────────
+# ── 13. Ad-hoc code sign ─────────────────────────────────────────────────────
+# Ad-hoc signing allows Privacy & Security → "Open Anyway" to work.
+# Without a real Developer ID the app still won't pass Gatekeeper automatically,
+# but macOS will show "Open Anyway" instead of a hard block.
+echo "==> Ad-hoc signing..."
+# Sign all dylibs and .so files first (inside-out order required by codesign)
+find "$FRAMEWORKS" "$CONTENTS" \
+    \( -name "*.dylib" -o -name "*.so" \) \
+    -exec codesign --force --sign - {} \; 2>/dev/null || true
+# Sign the Python binary
+codesign --force --sign - "$BUNDLED_PY/bin/python$PY_VER" 2>/dev/null || true
+# Sign the whole .app bundle last
+codesign --force --deep --sign - "$APP" 2>/dev/null \
+    && echo "   Signed (ad-hoc)" || echo "   WARNING: codesign failed"
+
+# ── 14. Bundle size summary ───────────────────────────────────────────────────
 echo ""
 echo "==> Bundle summary:"
 du -sh "$FRAMEWORKS" "$RESOURCES" "$MACOS"
 echo "Total:"
 du -sh "$APP"
 
-# ── 14. Create DMG ───────────────────────────────────────────────────────────
+# ── 15. Create DMG ───────────────────────────────────────────────────────────
 echo ""
 echo "==> Creating DMG..."
 DMG_NAME="$APP_NAME-$APP_VERSION.dmg"
