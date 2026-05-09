@@ -64,5 +64,8 @@ test:  ## Run tests.
 clean:  ## Clean build files.
 	yes | rm -rf $(BUILD)
 
+bundle-macos: ## Build self-contained .app and .dmg for macOS distribution
+	bash scripts/bundle-macos.sh
+
 alt-deps: ## Устрановка зависимостей в Alt Linux для работы
 	epmi python3-module-netifaces python3-module-requests python3-module-keyring meson cmake
