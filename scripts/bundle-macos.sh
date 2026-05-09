@@ -128,11 +128,14 @@ for pkg in gi cairo; do
     [ -d "$SYS_SITEPACKAGES/$pkg" ] && cp -r "$SYS_SITEPACKAGES/$pkg" "$PY_SITEPACKAGES/"
 done
 
-# Add pure-Python packages (requests, netifaces, keyring and their deps)
-for pkg in requests netifaces keyring urllib3 certifi charset_normalizer idna \
+# Add pure-Python packages (requests, keyring and their deps) — directory-based
+for pkg in requests keyring urllib3 certifi charset_normalizer idna \
            jaraco more_itertools; do
     [ -d "$SYS_SITEPACKAGES/$pkg" ] && cp -r "$SYS_SITEPACKAGES/$pkg" "$PY_SITEPACKAGES/" 2>/dev/null || true
 done
+# Add C-extension single-file packages (e.g. netifaces installs as a .so, not a dir)
+find "$SYS_SITEPACKAGES" -maxdepth 1 -name "netifaces*.so" \
+    -exec cp {} "$PY_SITEPACKAGES/" \; 2>/dev/null || true
 # Also copy .dist-info so importlib.metadata works
 find "$SYS_SITEPACKAGES" -maxdepth 1 -name "*.dist-info" -exec cp -r {} "$PY_SITEPACKAGES/" \; 2>/dev/null || true
 
@@ -228,11 +231,12 @@ SEARCH_FLAGS=(
     -i /System
 )
 
-# Fix .so extension modules
+# Fix .so extension modules (gi, cairo, netifaces)
 SO_FILES=()
 for so in "$PY_SITEPACKAGES/gi/_gi.cpython"*".so" \
           "$PY_SITEPACKAGES/gi/_gi_cairo.cpython"*".so" \
-          "$PY_SITEPACKAGES/cairo/_cairo.cpython"*".so"; do
+          "$PY_SITEPACKAGES/cairo/_cairo.cpython"*".so" \
+          "$PY_SITEPACKAGES/netifaces"*".so"; do
     [ -f "$so" ] && SO_FILES+=(-x "$so")
 done
 
