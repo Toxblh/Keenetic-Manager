@@ -316,9 +316,9 @@ class RouterManager(Adw.ApplicationWindow):
         self.side_panel.append(create_action_row(
             Pages.CLIENTS, _("Clients"), "preferences-system-network-symbolic"))
 
-        # Кнопка Настройки VPN сервера
-        # self.side_panel.append(create_action_row(
-        #     Pages.VPN_SERVER, _("WireGurad Server")))
+        # Кнопка WireGuard туннели
+        self.side_panel.append(create_action_row(
+            Pages.VPN_SERVER, _("WireGuard"), "network-vpn-symbolic"))
 
         # Кнопка Настройки
         # self.side_panel.append(create_action_row(
