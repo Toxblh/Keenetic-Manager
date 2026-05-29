@@ -106,6 +106,21 @@ BUNDLED_PY_FW="$FRAMEWORKS/Python.framework"
 BUNDLED_PY="$BUNDLED_PY_FW/Versions/$PY_VER"
 chmod -R u+w "$BUNDLED_PY_FW/"
 
+# ── 5b. Patch Python.app so Dock/Activity Monitor show our name, not "Python" ─
+echo "==> Patching Python.app identity..."
+PYTHON_APP_PLIST="$BUNDLED_PY/Resources/Python.app/Contents/Info.plist"
+if [ -f "$PYTHON_APP_PLIST" ]; then
+    /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_ID"              "$PYTHON_APP_PLIST"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleName Keenetic Manager"           "$PYTHON_APP_PLIST"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" "$PYTHON_APP_PLIST"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_VERSION"            "$PYTHON_APP_PLIST"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Keenetic Manager" "$PYTHON_APP_PLIST" 2>/dev/null || \
+        /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Keenetic Manager" "$PYTHON_APP_PLIST"
+    echo "   Python.app identity patched"
+else
+    echo "   WARNING: Python.app/Info.plist not found, skipping"
+fi
+
 # Remove unnecessary bulk
 rm -rf "$BUNDLED_PY/include"
 rm -rf "$BUNDLED_PY/share"
@@ -360,6 +375,14 @@ echo "==> Creating Python launcher..."
 cat > "$RESOURCES/launch.py" << PYEOF
 import os, sys, signal, gettext
 
+# Set process name before any GUI framework init so Dock/Activity Monitor show our name
+if sys.platform == 'darwin':
+    try:
+        from Foundation import NSProcessInfo
+        NSProcessInfo.processInfo().setProcessName_('Keenetic Manager')
+    except Exception:
+        pass
+
 # Resolve bundle paths
 _macos = os.path.dirname(os.path.abspath(__file__))  # Contents/MacOS
 _bundle = os.path.dirname(_macos)                     # Contents
@@ -463,6 +486,14 @@ iconutil -c icns -o "$RESOURCES/keeneticmanager.icns" "$ICONSET_DIR" 2>/dev/null
     && echo "   ICNS created" || echo "   WARNING: iconutil failed, icon will be missing"
 rm -rf "$ICONSET_DIR"
 
+# Replace Python.app default icon with ours (keep same filename — iconservices caches by name)
+PYTHON_APP_RES="$BUNDLED_PY/Resources/Python.app/Contents/Resources"
+if [ -f "$RESOURCES/keeneticmanager.icns" ] && [ -d "$PYTHON_APP_RES" ]; then
+    cp "$RESOURCES/keeneticmanager.icns" "$PYTHON_APP_RES/PythonInterpreter.icns" 2>/dev/null || true
+    cp "$RESOURCES/keeneticmanager.icns" "$PYTHON_APP_RES/PythonApplet.icns"      2>/dev/null || true
+    echo "   Python.app icon replaced"
+fi
+
 # ── 13. Ad-hoc code sign ─────────────────────────────────────────────────────
 # Ad-hoc signing allows Privacy & Security → "Open Anyway" to work.
 # Without a real Developer ID the app still won't pass Gatekeeper automatically,
@@ -477,6 +508,31 @@ codesign --force --sign - "$BUNDLED_PY/bin/python$PY_VER" 2>/dev/null || true
 # Sign the whole .app bundle last
 codesign --force --deep --sign - "$APP" 2>/dev/null \
     && echo "   Signed (ad-hoc)" || echo "   WARNING: codesign failed"
+
+# Re-sign Python.app explicitly — patching Info.plist invalidated its signature
+PYTHON_APP_MACOS="$BUNDLED_PY/Resources/Python.app/Contents/MacOS/Python"
+PYTHON_APP_PATH="$BUNDLED_PY/Resources/Python.app"
+codesign --force --sign - "$PYTHON_APP_MACOS" 2>/dev/null || true
+codesign --force --sign - "$PYTHON_APP_PATH"  2>/dev/null || true
+
+# Override iconservices cache by writing the icon via NSWorkspace extended attribute.
+# This is the only reliable way to replace the icon without a reboot/cache flush.
+# Uses Homebrew Python which has PyObjC; falls back silently if unavailable.
+echo "==> Setting custom icon via NSWorkspace..."
+"$BREW/bin/python3" - "$RESOURCES/keeneticmanager.icns" "$PYTHON_APP_PATH" <<'PYEOF' || true
+import sys
+try:
+    from AppKit import NSWorkspace, NSImage
+    icon_path, app_path = sys.argv[1], sys.argv[2]
+    img = NSImage.alloc().initWithContentsOfFile_(icon_path)
+    if img:
+        ok = NSWorkspace.sharedWorkspace().setIcon_forFile_options_(img, app_path, 0)
+        print("   Custom icon set: " + ("OK" if ok else "FAILED"))
+    else:
+        print("   WARNING: failed to load icon file")
+except Exception as e:
+    print("   WARNING: NSWorkspace icon step skipped: " + str(e))
+PYEOF
 
 # ── 14. Bundle size summary ───────────────────────────────────────────────────
 echo ""
