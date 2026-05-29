@@ -127,6 +127,8 @@ echo "==> Adding Python packages (gi, cairo, requests, netifaces, keyring)..."
 for pkg in gi cairo; do
     [ -d "$SYS_SITEPACKAGES/$pkg" ] && cp -r "$SYS_SITEPACKAGES/$pkg" "$PY_SITEPACKAGES/"
 done
+# Remove GStreamer overrides — they reference GStreamer dylibs not bundled here
+find "$PY_SITEPACKAGES/gi" -name "*gst*" -delete 2>/dev/null || true
 
 # Add pure-Python packages (requests, keyring and their deps) — directory-based
 for pkg in requests keyring urllib3 certifi charset_normalizer idna \
@@ -143,8 +145,10 @@ find "$SYS_SITEPACKAGES" -maxdepth 1 -name "*.dist-info" -exec cp -r {} "$PY_SIT
 echo "==> Copying typelibs..."
 mkdir -p "$RESOURCES/girepository-1.0"
 for tl in Adw-1 Gdk-4.0 GdkMacos-4.0 GdkPixbuf-2.0 GdkPixdata-2.0 \
-          Gio-2.0 GioUnix-2.0 GLib-2.0 GLibUnix-2.0 GObject-2.0 \
-          Gsk-4.0 Gtk-4.0 Pango-1.0 PangoCairo-1.0 PangoFc-1.0 PangoFT2-1.0; do
+          Gio-2.0 GioUnix-2.0 GLib-2.0 GLibUnix-2.0 GModule-2.0 GObject-2.0 \
+          Graphene-1.0 Gsk-4.0 Gtk-4.0 \
+          HarfBuzz-0.0 cairo-1.0 fontconfig-2.0 freetype2-2.0 \
+          Pango-1.0 PangoCairo-1.0 PangoFc-1.0 PangoFT2-1.0 PangoOT-1.0; do
     src="$BREW/lib/girepository-1.0/$tl.typelib"
     [ -f "$src" ] && cp "$src" "$RESOURCES/girepository-1.0/"
 done
@@ -200,6 +204,19 @@ copy_dylib "lzo"         "liblzo2"
 copy_dylib "pixman"      "libpixman-1"
 copy_dylib "brotli"      "libbrotlidec"
 copy_dylib "brotli"      "libbrotlicommon"
+# Transitive deps not pulled in by the above
+copy_dylib "graphite2"   "libgraphite2.3"
+copy_dylib "libthai"     "libthai.0"
+copy_dylib "libdatrie"   "libdatrie.1"
+copy_dylib "libxmlb"     "libxmlb.2"
+copy_dylib "libfyaml"    "libfyaml.0"
+copy_dylib "zstd"        "libzstd.1"
+copy_dylib "xz"          "liblzma.5"
+copy_dylib "openssl@3"   "libcrypto.3"
+copy_dylib "openssl@3"   "libssl.3"
+copy_dylib "mpdecimal"   "libmpdec.4"
+copy_dylib "sqlite"      "libsqlite3"
+copy_dylib "webp"        "libwebpmux.3"
 
 # Use dylibbundler to recursively collect any remaining transitive deps
 echo "==> Running dylibbundler (collecting transitive dependencies)..."
@@ -227,6 +244,16 @@ SEARCH_FLAGS=(
     -s "$BREW/opt/pixman/lib"
     -s "$BREW/opt/brotli/lib"
     -s "$BREW/opt/webp/lib"
+    -s "$BREW/opt/graphite2/lib"
+    -s "$BREW/opt/libthai/lib"
+    -s "$BREW/opt/libdatrie/lib"
+    -s "$BREW/opt/libxmlb/lib"
+    -s "$BREW/opt/libfyaml/lib"
+    -s "$BREW/opt/zstd/lib"
+    -s "$BREW/opt/xz/lib"
+    -s "$BREW/opt/openssl@3/lib"
+    -s "$BREW/opt/mpdecimal/lib"
+    -s "$BREW/opt/sqlite/lib"
     -i /usr/lib
     -i /System
 )
@@ -252,14 +279,81 @@ echo "==> Copying pixbuf loaders..."
 PIXBUF_SRC="$BREW/lib/gdk-pixbuf-2.0/2.10.0/loaders"
 PIXBUF_DEST="$RESOURCES/gdk-pixbuf/2.10.0/loaders"
 mkdir -p "$PIXBUF_DEST"
-find "$PIXBUF_SRC" \( -name "*.so" -o -name "*.dylib" \) \
-    -exec cp {} "$PIXBUF_DEST/" \; 2>/dev/null || true
+# Use -L to dereference symlinks (e.g. libpixbufloader-webp.so is a Homebrew symlink)
+find "$PIXBUF_SRC" \( -name "*.so" -o -name "*.dylib" \) | while IFS= read -r f; do
+    cp -L "$f" "$PIXBUF_DEST/"
+done 2>/dev/null || true
 
-# Regenerate loaders.cache with bundle-relative paths
+# Generate loaders.cache from the HOMEBREW source loaders BEFORE install_name_tool rewrites,
+# so gdk-pixbuf-query-loaders can actually load them (they still have Homebrew paths).
+# Then replace the Homebrew loaders path with @RESOURCES@ placeholder.
 LOADERS_CACHE="$RESOURCES/gdk-pixbuf/loaders.cache"
-"$BREW/bin/gdk-pixbuf-query-loaders" "$PIXBUF_DEST/"*.so > "$LOADERS_CACHE" 2>/dev/null || true
-# Rewrite absolute paths to @RESOURCES@ placeholder (replaced at runtime by launcher)
-sed -i '' "s|$(pwd)/$RESOURCES|@RESOURCES@|g" "$LOADERS_CACHE" 2>/dev/null || true
+"$BREW/bin/gdk-pixbuf-query-loaders" "$PIXBUF_SRC/"*.so > "$LOADERS_CACHE" 2>/dev/null || true
+sed -i '' "s|$PIXBUF_SRC|@RESOURCES@/gdk-pixbuf/2.10.0/loaders|g" "$LOADERS_CACHE" 2>/dev/null || true
+
+# ── 8.5 Rewrite all Homebrew install names → @executable_path/../Frameworks/ ──
+# dylibbundler rewrites refs inside Python/.so but does NOT rewrite the install
+# names of the dylibs themselves. This step fixes that for every binary in the
+# bundle, handling versioned-name mismatches (e.g. libjpeg.8.dylib → libjpeg.8.3.2.dylib).
+echo "==> Rewriting Homebrew paths in bundle binaries..."
+
+# Pre-compute ref_name→actual_name mapping into a temp file.
+# ref_name  = basename of the install name (what other dylibs call this lib)
+# actual_name = filename on disk in Frameworks/
+_MAPPING=$(mktemp -t km-dylib-map)
+for _lib in "$FRAMEWORKS/"*.dylib; do
+    [ -f "$_lib" ] || continue
+    _actual=$(basename "$_lib")
+    _iname=$(otool -D "$_lib" 2>/dev/null | awk 'NR==2{print $0}')
+    _ibase="${_iname##*/}"
+    # actual→actual (direct match)
+    printf '%s %s\n' "$_actual" "$_actual" >> "$_MAPPING"
+    # install-name-basename→actual (handles libfoo.7.dylib → libfoo.7.2.0.dylib)
+    [ "$_ibase" != "$_actual" ] && printf '%s %s\n' "$_ibase" "$_actual" >> "$_MAPPING"
+done
+
+_fix_binary() {
+    local file="$1"
+    chmod u+w "$file" 2>/dev/null || true
+    # Fix each Homebrew dep that has a bundled counterpart
+    while IFS= read -r dep; do
+        local ref="${dep##*/}"
+        local actual
+        actual=$(grep "^${ref} " "$_MAPPING" | awk '{print $2}' | head -1 || true)
+        if [ -n "$actual" ]; then
+            install_name_tool -change "$dep" \
+                "@executable_path/../Frameworks/$actual" "$file" 2>/dev/null || true
+        fi
+    done < <(otool -L "$file" 2>/dev/null | awk 'NR>1 {print $1}' \
+             | grep -E '^/opt/(homebrew|local)' || true)
+    # Fix own install name to use actual filename (for dylibs)
+    local self_id actual_name
+    self_id=$(otool -D "$file" 2>/dev/null | awk 'NR==2{print $0}')
+    actual_name=$(basename "$file")
+    case "$self_id" in
+        /opt/*|@executable_path/*)
+            install_name_tool -id \
+                "@executable_path/../Frameworks/$actual_name" "$file" 2>/dev/null || true ;;
+    esac
+}
+
+# Fix Frameworks dylibs
+for _lib in "$FRAMEWORKS/"*.dylib; do
+    [ -f "$_lib" ] && _fix_binary "$_lib"
+done
+# Fix Python extension modules
+find "$BUNDLED_PY/lib/python$PY_VER/site-packages" \
+     "$BUNDLED_PY/lib/python$PY_VER/lib-dynload" \
+     -name "*.so" 2>/dev/null | while IFS= read -r _so; do
+    _fix_binary "$_so"
+done
+# Fix pixbuf loaders
+for _so in "$PIXBUF_DEST/"*.so "$PIXBUF_DEST/"*.dylib; do
+    [ -f "$_so" ] && _fix_binary "$_so"
+done
+
+rm -f "$_MAPPING"
+echo "   Done"
 
 # ── 9. Create Python launch script ───────────────────────────────────────────
 echo "==> Creating Python launcher..."
@@ -299,10 +393,14 @@ FRAMEWORKS="\$BUNDLE/Frameworks"
 PY_FW="\$FRAMEWORKS/Python.framework/Versions/$PY_VER"
 PY_BIN="\$PY_FW/bin/python$PY_VER"
 
-# Fix loaders.cache paths at first run
-LOADERS_CACHE="\$RESOURCES/gdk-pixbuf/loaders.cache"
-if grep -q "@RESOURCES@" "\$LOADERS_CACHE" 2>/dev/null; then
-    sed -i '' "s|@RESOURCES@|\$RESOURCES|g" "\$LOADERS_CACHE"
+# Build a temp loaders.cache with resolved paths; original stays as @RESOURCES@ template
+# so the file is never modified in place (required for read-only DMG mounts)
+_LOADERS_TEMPLATE="\$RESOURCES/gdk-pixbuf/loaders.cache"
+_LOADERS_CACHE="\$(mktemp -t keeneticmanager-pixbuf)"
+if grep -q "@RESOURCES@" "\$_LOADERS_TEMPLATE" 2>/dev/null; then
+    sed "s|@RESOURCES@|\$RESOURCES|g" "\$_LOADERS_TEMPLATE" > "\$_LOADERS_CACHE"
+else
+    cp "\$_LOADERS_TEMPLATE" "\$_LOADERS_CACHE"
 fi
 
 export DYLD_FRAMEWORK_PATH="\$FRAMEWORKS"
@@ -312,7 +410,7 @@ export PYTHONPATH="\$PY_FW/lib/python$PY_VER/site-packages"
 export GI_TYPELIB_PATH="\$RESOURCES/girepository-1.0"
 export GSETTINGS_SCHEMA_DIR="\$RESOURCES/glib-2.0/schemas"
 export XDG_DATA_DIRS="\$RESOURCES"
-export GDK_PIXBUF_MODULE_FILE="\$RESOURCES/gdk-pixbuf/loaders.cache"
+export GDK_PIXBUF_MODULE_FILE="\$_LOADERS_CACHE"
 
 # Prevent GTK from looking for GSettings schemas system-wide
 export DCONF_PROFILE=/dev/null

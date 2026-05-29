@@ -17,3 +17,4 @@ build/
 dist/
 routers.json
 .idea/
+.DS_Store
