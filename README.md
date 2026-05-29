@@ -9,8 +9,11 @@
 </p>
 
 <p align="center">
+    <a href='https://github.com/Toxblh/Keenetic-Manager/releases/download/v0.5.3/KeeneticManager-0.5.0.dmg'>
+        <img width='200' height='60' alt='Download MacOS DMG' src='/screenshots/get-it-on-mac.png'/>
+    </a>
     <a href='https://flathub.org/apps/ru.toxblh.KeeneticManager'>
-        <img width='200' alt='Download on Flathub' src='https://flathub.org/api/badge?locale=en'/>
+        <img width='200' height='60' alt='Download on Flathub' src='https://flathub.org/api/badge?locale=en'/>
     </a>
 </p>
 
