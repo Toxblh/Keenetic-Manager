@@ -29,7 +29,7 @@ class DnsRouteGroup:
     """Represents a single DNS route group on the router."""
     def __init__(self, name: str, description: str = "", domains: list[str] = None,
                  interface: str = "", slug: str = "", date: str = "", batch: int = 1,
-                 enabled: bool = True, source: str = "manual"):
+                 enabled: bool = True, source: str = "manual", route_index: str = ""):
         self.name = name                    # object-group fqdn name (e.g. rt_0)
         self.description = description      # raw description from router
         self.domains = domains or []        # list of domain strings
@@ -39,6 +39,7 @@ class DnsRouteGroup:
         self.batch = batch                  # batch number within split group
         self.enabled = enabled              # route is active
         self.source = source                # "v2fly" or "manual"
+        self.route_index = route_index      # RCI route index (for toggle)
 
     @property
     def display_name(self) -> str:
@@ -145,7 +146,7 @@ class DnsRoutesManager:
         try:
             data = self._rci_batch_show([
                 {"show": {"sc": {"object-group": {"fqdn": {}}}}},
-                {"show": {"sc": {"dns-proxy": {"route": {}}}}},
+                {"show": {"sc": {"dns-proxy": {"route": {}}}}},  # config has disable field
                 {"show": {"interface": {"details": "yes", "trait": "Ip"}}},
             ])
         except Exception as e:
@@ -164,7 +165,7 @@ class DnsRoutesManager:
                     sc = entry.get("show", {}).get("sc", {}).get("object-group", {}).get("fqdn", {})
                     groups_data = sc if isinstance(sc, dict) else {}
                 elif i == 1:
-                    # show sc dns-proxy route
+                    # show sc dns-proxy route (config, has disable field)
                     routes_data = entry.get("show", {}).get("sc", {}).get("dns-proxy", {}).get("route", [])
                 elif i == 2:
                     # show interface details=yes trait=Ip
@@ -266,8 +267,17 @@ class DnsRoutesManager:
         Automatically appends 'system configuration save' at the end."""
         payload = [{"parse": cmd} for cmd in commands]
         payload.append({"parse": "system configuration save"})
+        self._send_batch(payload)
 
-        # Send in batches of 50 (router limit)
+    def _rci_raw_batch(self, payload: list[dict]):
+        """Send raw RCI JSON objects (not wrapped in parse). 
+        Automatically appends system configuration save."""
+        payload_with_save = list(payload)
+        payload_with_save.append({"system": {"configuration": {"save": {}}}})
+        self._send_batch(payload_with_save)
+
+    def _send_batch(self, payload: list[dict]):
+        """Send payload in batches of 50 to /rci/."""
         batch_size = 50
         for i in range(0, len(payload), batch_size):
             batch = payload[i:i + batch_size]
@@ -346,13 +356,14 @@ class DnsRoutesManager:
 
         print(f"[dns] get_groups: {len(groups_data)} group(s), {len(routes_data)} route(s)")
 
-        # Build route map: group_name -> {interface, enabled}
+        # Build route map: group_name -> {interface, enabled, index}
         route_map = {}
         for route in routes_data:
             group_name = route.get("group", "")
             route_map[group_name] = {
                 "interface": route.get("interface", ""),
-                "enabled": not route.get("disabled", False),
+                "enabled": not route.get("disable", False),
+                "index": route.get("index", ""),
             }
 
         # Build groups
@@ -368,6 +379,7 @@ class DnsRoutesManager:
             route_info = route_map.get(group_name, {})
             interface = route_info.get("interface", "")
             enabled = route_info.get("enabled", True)
+            route_index = route_info.get("index", "")
 
             if DnsRouteGroup.is_managed(desc):
                 meta = DnsRouteGroup.parse_description(desc)
@@ -381,6 +393,7 @@ class DnsRoutesManager:
                     batch=meta["batch"],
                     enabled=enabled,
                     source=meta.get("source", "manual"),
+                    route_index=route_index,
                 )
             else:
                 # Legacy or unmanaged group
@@ -391,6 +404,7 @@ class DnsRoutesManager:
                     interface=interface,
                     slug=desc or group_name,
                     enabled=enabled,
+                    route_index=route_index,
                 )
             groups.append(group)
 
@@ -436,18 +450,25 @@ class DnsRoutesManager:
 
     def _validate(self, groups: list[DnsRouteGroup], routes_data: list) -> dict[str, str]:
         """Validate managed groups against actual routes, repair if needed.
-        Returns {group_name: status} where status is:
-          'ok' - route matches stored metadata
-          'repaired' - route was missing, created now
-          'updated' - route interface changed, metadata updated
-          'no_interface' - route exists but no interface (user removed?)
+        Returns {group_name: status_message} where status_message is:
+          'ok' - all good
+          'repaired: route_name via iface' - route was missing, created now
+          'updated: old_iface → new_iface' - interface changed, metadata updated
+          'no_interface' - no interface stored
         """
         if not isinstance(routes_data, list):
             routes_data = []
 
-        route_map = {}
+        route_map: dict[str, list[dict]] = {}
         for r in routes_data:
-            route_map[r.get("group", "")] = r.get("interface", "")
+            gname = r.get("group", "")
+            if gname not in route_map:
+                route_map[gname] = []
+            route_map[gname].append({
+                "interface": r.get("interface", ""),
+                "index": r.get("index", ""),
+                "disabled": r.get("disable", False),
+            })
 
         statuses = {}
 
@@ -456,57 +477,101 @@ class DnsRoutesManager:
                 statuses[group.name] = "ok"
                 continue
 
-            current_route_iface = route_map.get(group.name, "")
+            routes = route_map.get(group.name, [])
             stored_iface = group.interface
 
-            if not current_route_iface:
-                # No route at all - repair: create it
+            if not routes:
+                # No route at all - repair: create one
                 if stored_iface:
                     print(f"[dns] validate: {group.name} missing route, repairing -> {stored_iface}")
                     try:
-                        self._parse_batch([
-                            f"dns-proxy route object-group {group.name} {stored_iface} auto"
-                        ])
-                        statuses[group.name] = "repaired"
+                        self._set_route(group.name, stored_iface)
+                        statuses[group.name] = f"repaired: → {stored_iface}"
                     except Exception as e:
                         print(f"[dns] validate: repair failed for {group.name}: {e}")
                         statuses[group.name] = "error"
                 else:
                     statuses[group.name] = "no_interface"
 
-            elif current_route_iface != stored_iface:
-                # Interface changed - accept user's change, update our metadata
-                print(f"[dns] validate: {group.name} iface changed {stored_iface} -> {current_route_iface}, updating metadata")
-                prefix = "v2fly:" if DnsRouteGroup.is_v2fly(group.description) else ""
-                new_desc = f"{prefix}{group.slug}*{current_route_iface}*{group.date}*{group.batch}"
-                try:
-                    self._parse_batch([
-                        f"object-group fqdn {group.name} description \"{new_desc}\""
-                    ])
-                    statuses[group.name] = "updated"
-                except Exception as e:
-                    print(f"[dns] validate: metadata update failed for {group.name}: {e}")
-                    statuses[group.name] = "error"
+            elif len(routes) > 1:
+                # Multiple routes — delete only non-matching ones, keep the correct one
+                wrong_routes = [r for r in routes if r["interface"] != stored_iface]
+                matching = [r for r in routes if r["interface"] == stored_iface]
+                if wrong_routes and matching:
+                    # Delete non-matching routes using group+interface (web UI format)
+                    print(f"[dns] validate: {group.name} has {len(routes)} routes, "
+                          f"removing {len(wrong_routes)} non-matching")
+                    try:
+                        payload = [{"dns-proxy": {"route": {
+                            "group": group.name, "interface": r["interface"], "no": True
+                        }}} for r in wrong_routes]
+                        self._rci_raw_batch(payload)
+                        statuses[group.name] = f"repaired: → {stored_iface} (cleaned {len(wrong_routes)} dups)"
+                    except Exception as e:
+                        print(f"[dns] validate: failed to clean dups for {group.name}: {e}")
+                        statuses[group.name] = "error"
+                elif not matching and stored_iface:
+                    # No matching route — delete all, create correct
+                    print(f"[dns] validate: {group.name} has {len(routes)} routes, none match {stored_iface}, repairing")
+                    try:
+                        payload = [{"dns-proxy": {"route": {
+                            "group": group.name, "interface": r["interface"], "no": True
+                        }}} for r in routes if r.get("interface")]
+                        payload.append({"dns-proxy": {"route": {
+                            "group": group.name, "interface": stored_iface, "auto": True
+                        }}})
+                        self._rci_raw_batch(payload)
+                        statuses[group.name] = f"repaired: → {stored_iface}"
+                    except Exception as e:
+                        print(f"[dns] validate: repair failed for {group.name}: {e}")
+                        statuses[group.name] = "error"
+                else:
+                    statuses[group.name] = "ok"
 
             else:
-                statuses[group.name] = "ok"
+                # Exactly one route
+                current_route = routes[0]
+                current_route_iface = current_route["interface"]
+
+                if current_route_iface != stored_iface:
+                    # Interface mismatch — update metadata to match reality OR fix the route
+                    print(f"[dns] validate: {group.name} iface changed {stored_iface} -> {current_route_iface}, updating metadata")
+                    prefix = "v2fly:" if DnsRouteGroup.is_v2fly(group.description) else ""
+                    new_desc = f"{prefix}{group.slug}*{current_route_iface}*{group.date}*{group.batch}"
+                    try:
+                        self._parse_batch([
+                            f"object-group fqdn {group.name} description \"{new_desc}\""
+                        ])
+                        statuses[group.name] = f"updated: {stored_iface} → {current_route_iface}"
+                    except Exception as e:
+                        print(f"[dns] validate: metadata update failed for {group.name}: {e}")
+                        statuses[group.name] = "error"
+                else:
+                    statuses[group.name] = "ok"
 
         print(f"[dns] validate: {statuses}")
         return statuses
 
-    def _set_route(self, group_name: str, interface: str):
+    def _set_route(self, group_name: str, interface: str, old_routes: list[dict] = None):
         """Ensure exactly one dns-proxy route exists for a group.
-        Always removes all existing routes first, then creates the correct one."""
+        Deletes existing routes by group+interface, then creates the correct one."""
         print(f"[dns] _set_route: {group_name} -> {interface}")
-        commands = [
-            f"no dns-proxy route object-group {group_name}",
-            f"dns-proxy route object-group {group_name} {interface} auto",
-        ]
-        self._parse_batch(commands)
+        payload = []
+        if old_routes:
+            for r in old_routes:
+                payload.append({"dns-proxy": {"route": {
+                    "group": group_name, "interface": r.get("interface", ""), "no": True
+                }}})
+        payload.append({"dns-proxy": {"route": {
+            "group": group_name, "interface": interface, "auto": True
+        }}})
+        self._rci_raw_batch(payload)
 
     def _remove_route(self, group_name: str):
-        """Remove all dns-proxy routes for a group (disable)."""
-        self._parse_batch([f"no dns-proxy route object-group {group_name}"])
+        """Remove all dns-proxy routes for a group via raw JSON."""
+        self._rci_raw_batch([
+            {"dns-proxy": {"route": {"group": group_name, "no": True}}}
+        ])
 
     def create_group(self, slug: str, domains: list[str], interface: str,
                      date: str = None, batch: int = 1, batch_total: int = 1) -> str:
@@ -547,16 +612,24 @@ class DnsRoutesManager:
         self._parse_batch(commands)
         return group_name
 
-    def update_group_domains(self, group_name: str, domains: list[str]):
-        """Replace all domains in an existing group."""
+    def update_group_domains(self, group_name: str, domains: list[str], description: str = None):
+        """Replace all domains in an existing group using raw JSON (fast).
+        Optionally update description at the same time."""
         if len(domains) > DOMAIN_LIMIT:
             raise ValueError(f"Too many domains ({len(domains)}), max {DOMAIN_LIMIT}")
 
-        commands = [f"no object-group fqdn {group_name}"]
-        commands.append(f"object-group fqdn {group_name}")
-        for domain in domains:
-            commands.append(f"object-group fqdn {group_name} include {domain}")
-        self._parse_batch(commands)
+        payload = [
+            # Clear existing domains
+            {"object-group": {"fqdn": {group_name: {"include": {"no": True}}}}},
+        ]
+        # Build new group data
+        group_data: dict[str, Any] = {
+            "include": [{"address": d} for d in domains],
+        }
+        if description:
+            group_data["description"] = description
+        payload.append({"object-group": {"fqdn": {group_name: group_data}}})
+        self._rci_raw_batch(payload)
 
     def update_group_interface(self, group_name: str, new_interface: str):
         """Change the VPN interface for a group. Updates both the route and description."""
@@ -582,37 +655,75 @@ class DnsRoutesManager:
         self._parse_batch(commands)
 
     def delete_group(self, group_name: str):
-        """Delete a DNS route group and its route."""
-        # First remove the route, then the group
-        groups = self.get_groups()
-        target = None
-        for g in groups:
-            if g.name == group_name:
-                target = g
-                break
-
-        commands = []
-        if target and target.interface:
-            commands.append(f"no dns-proxy route object-group {group_name}")
-        commands.append(f"no object-group fqdn {group_name}")
+        """Delete a DNS route group and its route (no extra requests)."""
+        commands = [
+            f"no dns-proxy route object-group {group_name}",
+            f"no object-group fqdn {group_name}",
+        ]
         self._parse_batch(commands)
 
-    def toggle_route(self, group_name: str, enable: bool):
-        """Enable or disable a DNS route."""
-        if enable:
-            # Re-enable: get interface, set route (not add)
-            groups = self.get_groups()
-            for g in groups:
-                if g.name == group_name and g.interface:
-                    self._set_route(group_name, g.interface)
-                    return
-            raise ValueError(f"Cannot enable {group_name}: no interface found")
-        else:
-            self._remove_route(group_name)
+    def create_group(self, slug: str, domains: list[str], interface: str,
+                     date: str = None, batch: int = 1, batch_total: int = 1,
+                     existing_names: set[str] = None) -> str:
+        """Create a new DNS route group. Optionally pass existing_names to skip re-fetching."""
+        if date is None:
+            date = datetime.now().strftime("%d%m%y")
 
-    def sync_list(self, slug: str, interface: str) -> list[str]:
-        """Sync a v2fly domain list: download, split into batches, create/update groups.
-        Returns list of created/updated group names."""
+        # Find next available index
+        if existing_names is None:
+            existing = self.get_groups()
+            existing_names = set(g.name for g in existing)
+        idx = 0
+        while f"{GROUP_PREFIX}{idx}" in existing_names:
+            idx += 1
+        group_name = f"{GROUP_PREFIX}{idx}"
+        existing_names.add(group_name)  # Reserve for subsequent batches
+
+        # Encode metadata in description
+        desc = f"v2fly:{slug}*{interface}*{date}*{batch}"
+
+        # Build commands
+        commands = [
+            f"object-group fqdn {group_name}",
+            f"object-group fqdn {group_name} description \"{desc}\"",
+        ]
+        for domain in domains[:DOMAIN_LIMIT]:
+            commands.append(f"object-group fqdn {group_name} include {domain}")
+
+        # Add route (set, not add - avoids duplicates)
+        commands.append(f"no dns-proxy route object-group {group_name}")
+        commands.append(f"dns-proxy route object-group {group_name} {interface} auto")
+
+        self._parse_batch(commands)
+        return group_name
+
+    def toggle_route(self, group_name: str, enable: bool):
+        """Enable or disable a DNS route via RCI disable API."""
+        # Find the route index
+        routes_data = self._rci_get_json("rci/dns-proxy/route")
+        if not isinstance(routes_data, list):
+            routes_data = []
+
+        route_index = None
+        for r in routes_data:
+            if r.get("group") == group_name:
+                route_index = r.get("index", "")
+                break
+
+        if not route_index:
+            raise ValueError(f"No route index found for {group_name}")
+
+        # Use raw RCI JSON (not CLI parse) for disable/enable
+        self._rci_raw_batch([
+            {"dns-proxy": {"route": {"disable": {"index": route_index, "no": enable}}}}
+        ])
+
+    def sync_list(self, slug: str, interface: str,
+                  existing_groups_for_slug: list = None,
+                  all_existing_names: set[str] = None) -> list[str]:
+        """Sync a v2fly domain list: download, compare, update only what changed.
+        Pass existing_groups_for_slug and all_existing_names to avoid re-fetching.
+        Returns list of group names."""
         from .v2fly import fetch_domain_list
 
         domains, _ = fetch_domain_list(slug)
@@ -620,28 +731,61 @@ class DnsRoutesManager:
 
         # Split into chunks of DOMAIN_LIMIT
         chunks = [domains[i:i + DOMAIN_LIMIT] for i in range(0, len(domains), DOMAIN_LIMIT)]
-        total_batches = len(chunks)
 
-        # Remove existing groups for this slug
-        existing_groups = self.get_grouped_by_slug().get(slug, [])
-        for g in existing_groups:
-            try:
-                self.delete_group(g.name)
-            except Exception as e:
-                print(f"[dns_routes] Failed to delete {g.name}: {e}")
+        # Get existing groups, sorted by batch
+        if existing_groups_for_slug is None:
+            existing_groups_for_slug = self.get_grouped_by_slug().get(slug, [])
+        existing_sorted = sorted(existing_groups_for_slug, key=lambda g: g.batch)
 
-        # Create new groups
-        created = []
+        if all_existing_names is None:
+            all_existing_names = set()
+            grouped = self.get_grouped_by_slug()
+            for gs in grouped.values():
+                for g in gs:
+                    all_existing_names.add(g.name)
+
+        updated = []
+
+        # Update existing groups, create new ones if needed
         for i, chunk in enumerate(chunks):
             batch_num = i + 1
-            name = self.create_group(
-                slug=slug,
-                domains=chunk,
-                interface=interface,
-                date=today,
-                batch=batch_num,
-                batch_total=total_batches,
-            )
-            created.append(name)
+            if i < len(existing_sorted):
+                existing = existing_sorted[i]
+                new_set = set(chunk)
+                old_set = set(existing.domains)
+                if new_set == old_set:
+                    # Unchanged — just update date in description
+                    print(f"[dns] sync {slug} batch {batch_num}: unchanged, updating date")
+                    new_desc = f"v2fly:{slug}*{interface}*{today}*{batch_num}"
+                    self._parse_batch([
+                        f"object-group fqdn {existing.name} description \"{new_desc}\""
+                    ])
+                    updated.append(existing.name)
+                else:
+                    # Changed — update domains + description in one raw JSON call
+                    added = new_set - old_set
+                    removed = old_set - new_set
+                    new_desc = f"v2fly:{slug}*{interface}*{today}*{batch_num}"
+                    print(f"[dns] sync {slug} batch {batch_num}: changed (+{len(added)} -{len(removed)}), updating")
+                    self.update_group_domains(existing.name, chunk, description=new_desc)
+                    updated.append(existing.name)
+            else:
+                # New batch needed (domains grew)
+                print(f"[dns] sync {slug} batch {batch_num}: new batch, creating")
+                name = self.create_group(
+                    slug=slug, domains=chunk, interface=interface,
+                    date=today, batch=batch_num, batch_total=len(chunks),
+                    existing_names=all_existing_names,
+                )
+                updated.append(name)
 
-        return created
+        # Delete excess old groups (domains shrunk)
+        for i in range(len(chunks), len(existing_sorted)):
+            old = existing_sorted[i]
+            print(f"[dns] sync {slug} batch {old.batch}: excess, deleting {old.name}")
+            try:
+                self.delete_group(old.name)
+            except Exception as e:
+                print(f"[dns_routes] Failed to delete excess {old.name}: {e}")
+
+        return updated

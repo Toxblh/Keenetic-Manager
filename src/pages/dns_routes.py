@@ -15,7 +15,7 @@ from .utils import clear_container
 
 
 def show_dns_routes(self):
-    """Main entry point: display DNS Routes page."""
+    """Main entry point: display DNS Routes page (full load with network requests)."""
     clear_container(self.dns_routes_page)
 
     if not self.current_router:
@@ -24,21 +24,19 @@ def show_dns_routes(self):
         self.dns_routes_page.append(label)
         return
 
-    status_label = Gtk.Label(label=_("Loading DNS routes..."))
-    status_label.set_margin_top(24)
-    self.dns_routes_page.append(status_label)
+    # Create ToastOverlay — all toasts (loading, progress, errors) appear here
+    toast_overlay = Adw.ToastOverlay()
+    self._dns_toast_overlay = toast_overlay
+    self.dns_routes_page.append(toast_overlay)
 
-    # Timeout guard: if loading takes >10s, show error
-    done = [False]
-    def timeout_check():
-        if not done[0]:
-            status_label.set_text(_("Timeout loading DNS routes. Router may not support this feature (KeeneticOS 5.0+ required)."))
-        return False  # Stop the timeout
-    GLib.timeout_add(10000, timeout_check)  # 10 seconds
+    # Show loading toast
+    loading_toast = Adw.Toast(title=_("Loading DNS routes..."))
+    toast_overlay.add_toast(loading_toast)
 
     def load():
         try:
             manager = DnsRoutesManager(self.current_router)
+            self._dns_manager = manager
             # Pre-warm v2fly cache in background
             threading.Thread(target=lambda: get_available_lists(), daemon=True).start()
             print("[dns_routes] Fetching all data (single POST)...")
@@ -51,28 +49,54 @@ def show_dns_routes(self):
                 len(routes_data) if isinstance(routes_data, list) else "?",
                 len(ifaces_data) if isinstance(ifaces_data, dict) else "?",
             ))
-            # Build groups from pre-fetched data (no extra requests)
-            grouped = manager.get_grouped_by_slug_cached(groups_data, routes_data)
+            self._dns_grouped = manager.get_grouped_by_slug_cached(groups_data, routes_data)
             print("[dns_routes] Fetching interfaces...")
-            interfaces = manager.get_vpn_interfaces(data=ifaces_data)
+            self._dns_interfaces = manager.get_vpn_interfaces(data=ifaces_data)
             print("[dns_routes] Validating...")
             statuses = manager.validate_and_repair_cached(groups_data, routes_data)
-            done[0] = True
-            GLib.idle_add(lambda: _render(self, manager, grouped, interfaces, statuses))
+            # Show toast for each repair/update
+            for name, status in statuses.items():
+                if status.startswith("repaired:") or status.startswith("updated:"):
+                    detail = status.split(": ", 1)[1] if ": " in status else status
+                    GLib.idle_add(lambda d=detail: _show_toast(self, _("✓ {detail}").format(detail=d)))
+            GLib.idle_add(lambda: _render(self, manager, self._dns_grouped, self._dns_interfaces, statuses))
         except Exception as ex:
-            done[0] = True
             msg = str(ex)
-            GLib.idle_add(lambda: _show_error(self, msg))
+            GLib.idle_add(lambda: _show_toast(self, _("Error: {msg}").format(msg=msg)))
 
     threading.Thread(target=load, daemon=True).start()
 
 
-def _show_error(self, message: str):
-    """Show error in the dns_routes_page."""
-    clear_container(self.dns_routes_page)
-    label = Gtk.Label(label=_("Error: {msg}").format(msg=message))
-    label.set_margin_top(24)
-    self.dns_routes_page.append(label)
+def _refresh_dns_routes(self):
+    """Light refresh: re-render with current data, no network requests, no loading toast."""
+    _save_scroll_position(self)
+    manager = getattr(self, '_dns_manager', None)
+    grouped = getattr(self, '_dns_grouped', None)
+    interfaces = getattr(self, '_dns_interfaces', None)
+    if manager and grouped and interfaces:
+        _render(self, manager, grouped, interfaces, {})
+
+
+def _save_scroll_position(self):
+    """Save current scroll position before rebuild."""
+    overlay = getattr(self, '_dns_toast_overlay', None)
+    if overlay:
+        child = overlay.get_child()
+        if isinstance(child, Gtk.Box):
+            # Find the ScrolledWindow inside the content box
+            scrolled = child.get_last_child()
+            while scrolled and not isinstance(scrolled, Gtk.ScrolledWindow):
+                scrolled = scrolled.get_prev_sibling()
+            if scrolled:
+                self._dns_scroll_value = scrolled.get_vadjustment().get_value()
+
+
+def _show_toast(self, message: str, timeout: int = 3):
+    """Show a toast notification on the DNS routes page."""
+    overlay = getattr(self, '_dns_toast_overlay', None)
+    if overlay:
+        toast = Adw.Toast(title=message, timeout=timeout)
+        overlay.add_toast(toast)
 
 
 def _iface_display(iface_id: str, interfaces: list[dict]) -> str:
@@ -88,10 +112,17 @@ def _iface_display(iface_id: str, interfaces: list[dict]) -> str:
 
 def _render(self, manager: DnsRoutesManager, grouped: dict, interfaces: list[dict], statuses: dict = None):
     """Render the DNS routes UI."""
-    clear_container(self.dns_routes_page)
+    overlay = getattr(self, '_dns_toast_overlay', None)
+    if overlay:
+        overlay.dismiss_all()
     if statuses is None:
         statuses = {}
     print(f"[dns_routes] _render: {len(grouped)} slug(s), {len(interfaces)} interface(s), statuses={statuses}")
+
+    # Build the main content box inside the toast overlay
+    content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    if overlay:
+        overlay.set_child(content_box)
 
     # --- Header with sync button ---
     header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
@@ -125,15 +156,24 @@ def _render(self, manager: DnsRoutesManager, grouped: dict, interfaces: list[dic
     mass_replace_btn.connect("clicked", lambda _: _show_mass_replace_dialog(self, manager, grouped, interfaces))
     header.append(mass_replace_btn)
 
-    self.dns_routes_page.append(header)
+    content_box.append(header)
 
     separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-    self.dns_routes_page.append(separator)
+    content_box.append(separator)
 
     scrolled = Gtk.ScrolledWindow()
     scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
     scrolled.set_vexpand(True)
-    self.dns_routes_page.append(scrolled)
+    content_box.append(scrolled)
+
+    # Restore scroll position after rebuild
+    saved_scroll = getattr(self, '_dns_scroll_value', None)
+    if saved_scroll is not None:
+        def restore_scroll():
+            adj = scrolled.get_vadjustment()
+            adj.set_value(min(saved_scroll, adj.get_upper() - adj.get_page_size()))
+            return False
+        GLib.idle_add(restore_scroll)
 
     if not grouped:
         empty_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -149,6 +189,7 @@ def _render(self, manager: DnsRoutesManager, grouped: dict, interfaces: list[dic
     list_box = Gtk.ListBox()
     list_box.set_selection_mode(Gtk.SelectionMode.NONE)
     list_box.add_css_class("rich-list")
+    list_box.connect("row-activated", lambda lb, row: _on_row_activated(self, manager, row, interfaces))
 
     for slug, groups in sorted(grouped.items()):
         if not groups:
@@ -157,6 +198,14 @@ def _render(self, manager: DnsRoutesManager, grouped: dict, interfaces: list[dic
         list_box.append(row)
 
     scrolled.set_child(list_box)
+
+
+def _on_row_activated(self, manager, row, interfaces):
+    """Handle click on a group row → open edit dialog."""
+    slug = getattr(row, 'slug', None)
+    groups = getattr(row, 'groups', None)
+    if slug and groups:
+        _show_edit_dialog(self, manager, slug, groups, interfaces)
 
 
 def _create_group_row(self, manager, slug, groups, interfaces, statuses=None):
@@ -183,10 +232,22 @@ def _create_group_row(self, manager, slug, groups, interfaces, statuses=None):
     name_text = slug
     # Status tag
     group_statuses = [statuses.get(g.name, "ok") for g in groups]
-    if "repaired" in group_statuses:
-        name_text += "  <small><span foreground='red'>⚠ {}</span></small>".format(_("repaired"))
-    elif "updated" in group_statuses:
-        name_text += "  <small><span foreground='orange'>↻ {}</span></small>".format(_("updated"))
+    if any(s.startswith("repaired:") for s in group_statuses):
+        detail = [s for s in group_statuses if s.startswith("repaired:")][0].split(": ", 1)[1]
+        # Convert iface IDs to display names
+        parts = detail.split(" → ")
+        if len(parts) == 2:
+            detail = f"{_iface_display(parts[0], interfaces)} → {_iface_display(parts[1], interfaces)}"
+        elif detail.startswith("→ "):
+            detail = f"→ {_iface_display(detail[2:], interfaces)}"
+        name_text += "  <small><span foreground='orange'>⚠ {}</span></small>".format(detail)
+    elif any(s.startswith("updated:") for s in group_statuses):
+        detail = [s for s in group_statuses if s.startswith("updated:")][0].split(": ", 1)[1]
+        # Convert iface IDs to display names
+        parts = detail.split(" → ")
+        if len(parts) == 2:
+            detail = f"{_iface_display(parts[0], interfaces)} → {_iface_display(parts[1], interfaces)}"
+        name_text += "  <small><span foreground='orange'>↻ {}</span></small>".format(detail)
     elif "error" in group_statuses:
         name_text += "  <small><span foreground='red'>✗ {}</span></small>".format(_("error"))
     elif "no_interface" in group_statuses:
@@ -220,10 +281,18 @@ def _create_group_row(self, manager, slug, groups, interfaces, statuses=None):
     hbox.append(name_box)
 
     iface_label = Gtk.Label()
-    iface_label.set_xalign(0.5)
+    iface_label.set_xalign(1.0)
+    iface_label.set_halign(Gtk.Align.END)
     iface_text = _iface_display(primary.interface, interfaces) if primary.interface else "—"
-    iface_label.set_markup(f"<small>{iface_text}</small>")
-    iface_label.set_width_chars(10)
+    # Add connection status dot (small, inline with text)
+    dot_markup = ""
+    for iface in interfaces:
+        if iface["id"] == primary.interface:
+            color = "green" if iface.get("connected") else "gray"
+            dot_markup = f'<span foreground="{color}">•</span> '
+            break
+    iface_label.set_markup(f"<small>{dot_markup}{iface_text}</small>")
+    iface_label.set_width_chars(12)
     hbox.append(iface_label)
 
     # Show edit/delete/toggle for ALL groups (managed or not)
@@ -252,6 +321,9 @@ def _create_group_row(self, manager, slug, groups, interfaces, statuses=None):
     hbox.append(del_btn)
 
     row.set_child(hbox)
+    # Store slug for row-activated handler
+    row.slug = slug
+    row.groups = groups
     return row
 
 
@@ -259,9 +331,10 @@ def _on_toggle(switch, state, groups, manager, self):
     for g in groups:
         try:
             manager.toggle_route(g.name, state)
+            g.enabled = state
         except Exception as e:
             print(f"[dns_routes] Toggle failed for {g.name}: {e}")
-    GLib.idle_add(lambda: show_dns_routes(self))
+    _refresh_dns_routes(self)
 
 
 def _confirm_delete(self, manager, slug, groups, interfaces):
@@ -282,7 +355,10 @@ def _confirm_delete(self, manager, slug, groups, interfaces):
                     manager.delete_group(g.name)
                 except Exception as e:
                     print(f"[dns_routes] Delete failed for {g.name}: {e}")
-            GLib.idle_add(lambda: show_dns_routes(self))
+            # Remove from local cache and refresh
+            grouped = getattr(self, '_dns_grouped', {})
+            grouped.pop(slug, None)
+            _refresh_dns_routes(self)
 
     dialog.connect("response", on_response)
     dialog.present()
@@ -445,19 +521,55 @@ def _show_add_dialog(self, manager, interfaces):
     add_btn.connect("clicked", on_add_clicked)
     btn_box.append(add_btn)
 
+    # Auto-focus: search on v2fly tab, name on manual tab
+    def on_mode_changed(stack, param):
+        if stack.get_visible_child_name() == "v2fly":
+            search_entry.grab_focus()
+        else:
+            name_entry.grab_focus()
+    mode_stack.connect("notify::visible-child", on_mode_changed)
+
     dialog.show()
+    search_entry.grab_focus()
+
+
+def _reload_dns_routes(self):
+    """Silent reload: re-fetch data, update cache, re-render in-place. No page clear, no loading toast."""
+    manager = getattr(self, '_dns_manager', None)
+    if not manager:
+        show_dns_routes(self)
+        return
+
+    def reload():
+        try:
+            all_data = manager.fetch_all_route_data()
+            groups_data = all_data["groups"]
+            routes_data = all_data["routes"]
+            ifaces_data = all_data["interfaces"]
+            self._dns_grouped = manager.get_grouped_by_slug_cached(groups_data, routes_data)
+            self._dns_interfaces = manager.get_vpn_interfaces(data=ifaces_data)
+            statuses = manager.validate_and_repair_cached(groups_data, routes_data)
+            # Show repair/update toasts
+            for name, status in statuses.items():
+                if status.startswith("repaired:") or status.startswith("updated:"):
+                    detail = status.split(": ", 1)[1] if ": " in status else status
+                    GLib.idle_add(lambda d=detail: _show_toast(self, _("✓ {detail}").format(detail=d)))
+            GLib.idle_add(lambda: _render(self, manager, self._dns_grouped, self._dns_interfaces, statuses))
+        except Exception as ex:
+            msg = str(ex)
+            GLib.idle_add(lambda: _show_toast(self, _("Error: {msg}").format(msg=msg)))
+
+    _save_scroll_position(self)
+    threading.Thread(target=reload, daemon=True).start()
 
 
 def _do_add_manual(self, manager, name, domains, interface):
     """Create a manual (non-v2fly) domain list."""
-    progress_label = Gtk.Label(label=_("Creating '{name}'...").format(name=name))
-    progress_label.set_margin_top(12)
-    self.dns_routes_page.append(progress_label)
+    _show_toast(self, _("Creating '{name}'...").format(name=name), timeout=0)
 
     def add():
         try:
             today = __import__('datetime').datetime.now().strftime("%d%m%y")
-            # Find available index
             existing = manager.get_groups()
             used = set()
             for g in existing:
@@ -481,30 +593,27 @@ def _do_add_manual(self, manager, name, domains, interface):
             commands.append(f"dns-proxy route object-group {group_name} {interface} auto")
             payload = [{"parse": c} for c in commands]
             payload.append({"parse": "system configuration save"})
-            # Send in batches of 50
             for i in range(0, len(payload), 50):
                 batch = payload[i:i+50]
                 manager._rci_post("rci/", batch)
-            GLib.idle_add(lambda: show_dns_routes(self))
+            GLib.idle_add(lambda: _reload_dns_routes(self))
         except Exception as ex:
             msg = str(ex)
-            GLib.idle_add(lambda: _show_error(self, msg))
+            GLib.idle_add(lambda: _show_toast(self, _("Error: {msg}").format(msg=msg)))
 
     threading.Thread(target=add, daemon=True).start()
 
 
 def _do_add_list(self, manager, slug, interface, interfaces):
-    progress_label = Gtk.Label(label=_("Downloading '{slug}'...").format(slug=slug))
-    progress_label.set_margin_top(12)
-    self.dns_routes_page.append(progress_label)
+    _show_toast(self, _("Downloading '{slug}'...").format(slug=slug), timeout=0)
 
     def add():
         try:
             manager.sync_list(slug, interface)
-            GLib.idle_add(lambda: show_dns_routes(self))
+            GLib.idle_add(lambda: _reload_dns_routes(self))
         except Exception as ex:
             msg = str(ex)
-            GLib.idle_add(lambda: _show_error(self, msg))
+            GLib.idle_add(lambda: _show_toast(self, _("Error: {msg}").format(msg=msg)))
 
     threading.Thread(target=add, daemon=True).start()
 
@@ -530,6 +639,11 @@ def _show_edit_dialog(self, manager, slug, groups, interfaces):
     domains_text = None  # For save handler
 
     if show_domains:
+        content.append(Gtk.Label(label=_("List name:"), xalign=0))
+        name_entry = Gtk.Entry()
+        name_entry.set_text(slug)
+        content.append(name_entry)
+
         content.append(Gtk.Label(label=_("Domains (one per line):"), xalign=0))
         domains_text = Gtk.TextView()
         domains_text.set_wrap_mode(Gtk.WrapMode.WORD)
@@ -581,6 +695,8 @@ def _show_edit_dialog(self, manager, slug, groups, interfaces):
     def on_save(btn):
         new_iface = iface_combo.get_active_id()
         iface_changed = new_iface and new_iface != current_iface
+        new_name = name_entry.get_text().strip() if show_domains else None
+        name_changed = bool(new_name and new_name != slug)
 
         # For non-v2fly groups, also check if domains changed
         domains_changed = False
@@ -594,44 +710,82 @@ def _show_edit_dialog(self, manager, slug, groups, interfaces):
                 old_domains.extend(g.domains)
             domains_changed = set(new_domains) != set(old_domains)
 
-        if iface_changed or domains_changed:
+        if iface_changed or domains_changed or name_changed:
             for g in groups:
                 try:
                     if domains_changed and new_domains:
-                        # Update domains (only for first batch if multiple)
                         manager.update_group_domains(g.name, new_domains[:300])
+                        g.domains = new_domains[:300]
                     if iface_changed:
                         manager.update_group_interface(g.name, new_iface)
+                        g.interface = new_iface
+                    if name_changed:
+                        # Update slug in description and local cache
+                        g.slug = new_name
+                        g.description = g.encode_description()
+                        manager._parse_batch([
+                            f"object-group fqdn {g.name} description \"{g.description}\""
+                        ])
                 except Exception as e:
                     print(f"[dns_routes] Edit failed for {g.name}: {e}")
-            GLib.idle_add(lambda: show_dns_routes(self))
+            # Update grouped cache if name changed
+            if name_changed:
+                grouped_cache = getattr(self, '_dns_grouped', {})
+                if slug in grouped_cache:
+                    grouped_cache[new_name] = grouped_cache.pop(slug)
+            _refresh_dns_routes(self)
         dialog.close()
 
     save_btn.connect("clicked", on_save)
     btn_box.append(save_btn)
 
     dialog.show()
+    # Focus on iface combo, not name entry
+    GLib.idle_add(lambda: iface_combo.grab_focus())
 
 
 def _sync_all(self, manager, grouped, interfaces):
     if not grouped:
         return
 
-    progress_label = Gtk.Label(label=_("Syncing all lists..."))
-    progress_label.set_margin_top(12)
-    self.dns_routes_page.append(progress_label)
+    # Only sync v2fly lists
+    v2fly_items = [(slug, groups) for slug, groups in grouped.items() if groups[0].source == "v2fly"]
+    if not v2fly_items:
+        _show_toast(self, _("No v2fly lists to sync"))
+        return
+
+    total = len(v2fly_items)
+    # Collect all existing group names once (avoid re-fetching in sync_list)
+    all_existing_names = set()
+    for gs in grouped.values():
+        for g in gs:
+            all_existing_names.add(g.name)
+
+    # Single persistent progress toast that we update
+    progress_toast = Adw.Toast(title=_("Syncing (0/{total})...").format(total=total), timeout=0)
+    progress_toast.set_priority(Adw.ToastPriority.HIGH)
+    overlay = getattr(self, '_dns_toast_overlay', None)
+    if overlay:
+        overlay.add_toast(progress_toast)
 
     def sync():
-        for slug, groups in grouped.items():
+        for i, (slug, groups) in enumerate(v2fly_items):
             iface = groups[0].interface
             if not iface:
                 print(f"[dns_routes] Skip {slug}: no interface")
                 continue
+            # Update progress toast title in-place
+            GLib.idle_add(lambda s=slug, n=i+1: progress_toast.set_title(
+                _("Syncing ({n}/{total}): {slug}").format(n=n, total=total, slug=s)))
             try:
-                manager.sync_list(slug, iface)
+                # Pass pre-fetched data to avoid extra HTTP requests
+                existing_for_slug = grouped.get(slug, [])
+                manager.sync_list(slug, iface,
+                                  existing_groups_for_slug=existing_for_slug,
+                                  all_existing_names=all_existing_names)
             except Exception as e:
                 print(f"[dns_routes] Sync failed for {slug}: {e}")
-        GLib.idle_add(lambda: show_dns_routes(self))
+        GLib.idle_add(lambda: _reload_dns_routes(self))
 
     threading.Thread(target=sync, daemon=True).start()
 
@@ -664,11 +818,9 @@ def _show_mass_replace_dialog(self, manager, grouped, interfaces):
 
     content.append(Gtk.Label(label=_("Replace all routes using:"), xalign=0))
 
-    from_combo = Gtk.ComboBoxText()
-    for iface_id in sorted(used_ifaces):
-        desc = _iface_display(iface_id, interfaces)
-        from_combo.append(iface_id, desc)
-    from_combo.set_active(0)
+    # Filter: only interfaces actually used in routes, but with status dots
+    used_iface_list = [i for i in interfaces if i["id"] in used_ifaces]
+    from_combo = _make_iface_combo(used_iface_list, active_id=used_iface_list[0]["id"] if used_iface_list else None)
     content.append(from_combo)
 
     content.append(Gtk.Label(label=_("With:"), xalign=0))
@@ -714,9 +866,7 @@ def _show_mass_replace_dialog(self, manager, grouped, interfaces):
             return
         dialog.close()
 
-        progress_label = Gtk.Label(label=_("Replacing routes..."))
-        progress_label.set_margin_top(12)
-        self.dns_routes_page.append(progress_label)
+        _show_toast(self, _("Replacing routes..."), timeout=0)
 
         def do_replace():
             count = 0
@@ -729,7 +879,7 @@ def _show_mass_replace_dialog(self, manager, grouped, interfaces):
                         except Exception as e:
                             print(f"[dns_routes] Mass replace failed for {g.name}: {e}")
             print(f"[dns_routes] Mass replace: {count} routes updated")
-            GLib.idle_add(lambda: show_dns_routes(self))
+            GLib.idle_add(lambda: _reload_dns_routes(self))
 
         threading.Thread(target=do_replace, daemon=True).start()
 
