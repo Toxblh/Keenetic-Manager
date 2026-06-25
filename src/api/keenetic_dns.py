@@ -486,7 +486,7 @@ class DnsRoutesManager:
                     print(f"[dns] validate: {group.name} missing route, repairing -> {stored_iface}")
                     try:
                         self._set_route(group.name, stored_iface)
-                        statuses[group.name] = f"repaired: → {stored_iface}"
+                        statuses[group.name] = f"repaired:→{stored_iface}"
                     except Exception as e:
                         print(f"[dns] validate: repair failed for {group.name}: {e}")
                         statuses[group.name] = "error"
@@ -506,7 +506,7 @@ class DnsRoutesManager:
                             "group": group.name, "interface": r["interface"], "no": True
                         }}} for r in wrong_routes]
                         self._rci_raw_batch(payload)
-                        statuses[group.name] = f"repaired: → {stored_iface} (cleaned {len(wrong_routes)} dups)"
+                        statuses[group.name] = f"cleaned:{len(wrong_routes)}:→{stored_iface}"
                     except Exception as e:
                         print(f"[dns] validate: failed to clean dups for {group.name}: {e}")
                         statuses[group.name] = "error"
@@ -521,7 +521,7 @@ class DnsRoutesManager:
                             "group": group.name, "interface": stored_iface, "auto": True
                         }}})
                         self._rci_raw_batch(payload)
-                        statuses[group.name] = f"repaired: → {stored_iface}"
+                        statuses[group.name] = f"repaired:→{stored_iface}"
                     except Exception as e:
                         print(f"[dns] validate: repair failed for {group.name}: {e}")
                         statuses[group.name] = "error"

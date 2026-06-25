@@ -8,6 +8,7 @@ src/config.py
 src/helpers/utils.py
 src/main.py
 src/pages/clients.py
+src/pages/dns_routes.py
 src/pages/me/me.py
 src/pages/settings.py
 src/pages/vpn.py

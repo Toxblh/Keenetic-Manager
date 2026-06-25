@@ -56,9 +56,22 @@ def show_dns_routes(self):
             statuses = manager.validate_and_repair_cached(groups_data, routes_data)
             # Show toast for each repair/update
             for name, status in statuses.items():
-                if status.startswith("repaired:") or status.startswith("updated:"):
-                    detail = status.split(": ", 1)[1] if ": " in status else status
-                    GLib.idle_add(lambda d=detail: _show_toast(self, _("✓ {detail}").format(detail=d)))
+                if status.startswith("repaired:"):
+                    iface_id = status.split(":", 1)[1].replace("→", "")
+                    iface_name = _iface_display(iface_id, self._dns_interfaces if hasattr(self, '_dns_interfaces') else [])
+                    GLib.idle_add(lambda n=iface_name: _show_toast(self, _("✓ repaired → {name}").format(name=n)))
+                elif status.startswith("cleaned:"):
+                    parts = status.split(":")
+                    n = parts[1]
+                    iface_id = parts[2].replace("→", "")
+                    iface_name = _iface_display(iface_id, self._dns_interfaces if hasattr(self, '_dns_interfaces') else [])
+                    GLib.idle_add(lambda n=iface_name, c=n: _show_toast(self, _("✓ repaired → {name} ({count})").format(name=n, count=_("cleaned {n} dups").format(n=c))))
+                elif status.startswith("updated:"):
+                    detail = status.split(":", 1)[1]
+                    parts = detail.split("→")
+                    old_name = parts[0].strip()
+                    new_name = parts[1].strip() if len(parts) > 1 else ""
+                    GLib.idle_add(lambda o=old_name, n=new_name: _show_toast(self, _("✓ updated {old} → {new}").format(old=o, new=n)))
             GLib.idle_add(lambda: _render(self, manager, self._dns_grouped, self._dns_interfaces, statuses))
         except Exception as ex:
             msg = str(ex)
@@ -230,24 +243,30 @@ def _create_group_row(self, manager, slug, groups, interfaces, statuses=None):
     name_label = Gtk.Label()
     name_label.set_xalign(0)
     name_text = slug
-    # Status tag
+    # Status tag — parse structured format from API
     group_statuses = [statuses.get(g.name, "ok") for g in groups]
-    if any(s.startswith("repaired:") for s in group_statuses):
-        detail = [s for s in group_statuses if s.startswith("repaired:")][0].split(": ", 1)[1]
-        # Convert iface IDs to display names
-        parts = detail.split(" → ")
-        if len(parts) == 2:
-            detail = f"{_iface_display(parts[0], interfaces)} → {_iface_display(parts[1], interfaces)}"
-        elif detail.startswith("→ "):
-            detail = f"→ {_iface_display(detail[2:], interfaces)}"
-        name_text += "  <small><span foreground='orange'>⚠ {}</span></small>".format(detail)
-    elif any(s.startswith("updated:") for s in group_statuses):
-        detail = [s for s in group_statuses if s.startswith("updated:")][0].split(": ", 1)[1]
-        # Convert iface IDs to display names
-        parts = detail.split(" → ")
-        if len(parts) == 2:
-            detail = f"{_iface_display(parts[0], interfaces)} → {_iface_display(parts[1], interfaces)}"
-        name_text += "  <small><span foreground='orange'>↻ {}</span></small>".format(detail)
+    repaired_s = [s for s in group_statuses if s.startswith("repaired:")]
+    cleaned_s = [s for s in group_statuses if s.startswith("cleaned:")]
+    updated_s = [s for s in group_statuses if s.startswith("updated:")]
+    if repaired_s:
+        # repaired:→{iface}
+        iface_id = repaired_s[0].split(":", 1)[1].replace("→", "")
+        name_text += "  <small><span foreground='orange'>⚠ → {}</span></small>".format(_iface_display(iface_id, interfaces))
+    elif cleaned_s:
+        # cleaned:{N}:→{iface}
+        parts = cleaned_s[0].split(":")
+        n = parts[1]
+        iface_id = parts[2].replace("→", "")
+        name_text += "  <small><span foreground='orange'>⚠ → {} ({})</span></small>".format(
+            _iface_display(iface_id, interfaces),
+            _("cleaned {n} dups").format(n=n))
+    elif updated_s:
+        # updated:{old}→{new}
+        detail = updated_s[0].split(":", 1)[1]
+        parts = detail.split("→")
+        old_name = _iface_display(parts[0].strip(), interfaces)
+        new_name = _iface_display(parts[1].strip(), interfaces)
+        name_text += "  <small><span foreground='orange'>↻ {} → {}</span></small>".format(old_name, new_name)
     elif "error" in group_statuses:
         name_text += "  <small><span foreground='red'>✗ {}</span></small>".format(_("error"))
     elif "no_interface" in group_statuses:
@@ -435,7 +454,7 @@ def _show_add_dialog(self, manager, interfaces):
 
     results_list.connect("row-activated", on_row_selected)
 
-    mode_stack.add_titled(v2fly_box, "v2fly", "v2fly")
+    mode_stack.add_titled(v2fly_box, "v2fly", _("v2fly"))
 
     # === MANUAL MODE ===
     manual_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -454,7 +473,7 @@ def _show_add_dialog(self, manager, interfaces):
     domains_scroll.set_child(domains_text)
     manual_box.append(domains_scroll)
 
-    mode_stack.add_titled(manual_box, "manual", "manual")
+    mode_stack.add_titled(manual_box, "manual", _("manual"))
 
     # Mode switcher
     mode_switcher = Gtk.StackSwitcher()
@@ -551,9 +570,23 @@ def _reload_dns_routes(self):
             statuses = manager.validate_and_repair_cached(groups_data, routes_data)
             # Show repair/update toasts
             for name, status in statuses.items():
-                if status.startswith("repaired:") or status.startswith("updated:"):
-                    detail = status.split(": ", 1)[1] if ": " in status else status
-                    GLib.idle_add(lambda d=detail: _show_toast(self, _("✓ {detail}").format(detail=d)))
+                if status.startswith("repaired:"):
+                    iface_id = status.split(":", 1)[1].replace("→", "")
+                    iface_name = _iface_display(iface_id, self._dns_interfaces)
+                    GLib.idle_add(lambda n=iface_name: _show_toast(self, _("✓ repaired → {name}").format(name=n)))
+                elif status.startswith("cleaned:"):
+                    parts = status.split(":")
+                    n = parts[1]
+                    iface_id = parts[2].replace("→", "")
+                    iface_name = _iface_display(iface_id, self._dns_interfaces)
+                    GLib.idle_add(lambda name=iface_name, c=n: _show_toast(self,
+                        _("✓ repaired → {name} ({count})").format(name=name, count=_("cleaned {n} dups").format(n=c))))
+                elif status.startswith("updated:"):
+                    detail = status.split(":", 1)[1]
+                    parts = detail.split("→")
+                    old_name = parts[0].strip()
+                    new_name = parts[1].strip() if len(parts) > 1 else ""
+                    GLib.idle_add(lambda o=old_name, n=new_name: _show_toast(self, _("✓ updated {old} → {new}").format(old=o, new=n)))
             GLib.idle_add(lambda: _render(self, manager, self._dns_grouped, self._dns_interfaces, statuses))
         except Exception as ex:
             msg = str(ex)
