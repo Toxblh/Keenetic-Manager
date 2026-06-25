@@ -20,6 +20,7 @@ from .vpn import show_vpn_clients
 from .clients import show_online_clients
 from .settings import show_settings
 from .wg_server import show_vpn_server
+from .dns_routes import show_dns_routes
 
 from .ui import create_client_row, create_action_row
 gi.require_version('Adw', '1')
@@ -31,6 +32,7 @@ class Pages(str, Enum):
     ME = "me"
     VPN = "vpn"
     CLIENTS = "clients"
+    ROUTES = "routes"
     VPN_SERVER = "vpn_server"
     SETTINGS = "settings"
 
@@ -274,6 +276,8 @@ class RouterManager(Adw.ApplicationWindow):
             show_vpn_clients(self)
         elif current_page == Pages.CLIENTS:
             show_online_clients(self)
+        elif current_page == Pages.ROUTES:
+            show_dns_routes(self)
         elif current_page == Pages.VPN_SERVER:
             show_vpn_server(self)
         elif current_page == Pages.SETTINGS:
@@ -312,6 +316,10 @@ class RouterManager(Adw.ApplicationWindow):
         self.side_panel.append(create_action_row(
             Pages.VPN, _("VPN"), "network-wireless-encrypted-symbolic"))
 
+        # Кнопка Маршруты
+        self.side_panel.append(create_action_row(
+            Pages.ROUTES, _("Routes"), "network-workgroup-symbolic"))
+
         # Кнопка Онлайн клиенты
         self.side_panel.append(create_action_row(
             Pages.CLIENTS, _("Clients"), "preferences-system-network-symbolic"))
@@ -334,6 +342,12 @@ class RouterManager(Adw.ApplicationWindow):
         self.vpn_page = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL)
         self.main_content.add_titled(self.vpn_page, Pages.VPN, _("VPN"))
+
+        # Страница Маршруты
+        self.dns_routes_page = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL)
+        self.main_content.add_titled(
+            self.dns_routes_page, Pages.ROUTES, _("Routes"))
 
         # Страница клиентов
         self.clients_page = Gtk.Box(

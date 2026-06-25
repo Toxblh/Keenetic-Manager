@@ -28,11 +28,15 @@ configure_file(
 
 keeneticmanager_sources = [
   '__init__.py',
+  'api/keenetic_dns.py',
   'api/keenetic_router.py',
+  'api/v2fly.py',
   'config.py',
+  'data/v2fly_list.json',
   'helpers/utils.py',
   'main.py',
   'pages/clients.py',
+  'pages/dns_routes.py',
   'pages/me/me.py',
   'pages/settings.py',
   'pages/vpn.py',

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-02 01:37+0300\n"
+"POT-Creation-Date: 2026-06-25 03:11+0300\n"
 "PO-Revision-Date: 2024-10-15 23:28+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -17,13 +17,13 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: data/ru.toxblh.KeeneticManager.desktop.in:3
+#: data/ru.toxblh.KeeneticManager.desktop.in:2
 #: data/ru.toxblh.KeeneticManager.metainfo.xml.in:7
 #: src/router_manager_app.py:42 src/window.ui:25
 msgid "Keenetic Manager"
 msgstr "Keenetic Manager"
 
-#: data/ru.toxblh.KeeneticManager.desktop.in:9
+#: data/ru.toxblh.KeeneticManager.desktop.in:8
 msgid "GTK;"
 msgstr ""
 
@@ -38,11 +38,6 @@ msgid ""
 "Provides the ability to manage some features of the Keenetic router more "
 "easily or provided UI for cli only features"
 msgstr ""
-
-#: data/ru.toxblh.KeeneticManager.metainfo.xml.in:14
-#: src/router_manager_app.py:44 src/router_manager_app.py:46
-msgid "Anton Palgunov (Toxblh)"
-msgstr "Anton Palgunov (Toxblh)"
 
 #: data/ru.toxblh.KeeneticManager.metainfo.xml.in:52
 msgid "Main UI"
@@ -75,9 +70,273 @@ msgstr ""
 msgid "Clear search field"
 msgstr ""
 
-#: src/pages/clients.py:66 src/pages/vpn.py:28 src/pages/wg_server.py:12
+#: src/pages/clients.py:66 src/pages/dns_routes.py:22 src/pages/vpn.py:28
+#: src/pages/wg_server.py:12
 msgid "Please select a router."
 msgstr "Please select a router."
+
+#. Show loading toast
+#: src/pages/dns_routes.py:33
+msgid "Loading DNS routes..."
+msgstr ""
+
+#: src/pages/dns_routes.py:62 src/pages/dns_routes.py:576
+#, python-brace-format
+msgid "✓ repaired → {name}"
+msgstr ""
+
+#: src/pages/dns_routes.py:68 src/pages/dns_routes.py:583
+#, python-brace-format
+msgid "✓ repaired → {name} ({count})"
+msgstr ""
+
+#: src/pages/dns_routes.py:68 src/pages/dns_routes.py:262
+#: src/pages/dns_routes.py:583
+#, python-brace-format
+msgid "cleaned {n} dups"
+msgstr ""
+
+#: src/pages/dns_routes.py:74 src/pages/dns_routes.py:589
+#, python-brace-format
+msgid "✓ updated {old} → {new}"
+msgstr ""
+
+#: src/pages/dns_routes.py:78 src/pages/dns_routes.py:593
+#: src/pages/dns_routes.py:635 src/pages/dns_routes.py:649
+#, python-brace-format
+msgid "Error: {msg}"
+msgstr ""
+
+#: src/pages/dns_routes.py:148
+#, fuzzy
+msgid "DNS Routes"
+msgstr "Delete Router"
+
+#: src/pages/dns_routes.py:153
+msgid "Sync All"
+msgstr ""
+
+#: src/pages/dns_routes.py:155
+msgid "Update all domain lists from v2fly"
+msgstr ""
+
+#: src/pages/dns_routes.py:159
+msgid "Add List"
+msgstr ""
+
+#: src/pages/dns_routes.py:161
+msgid "Add a new domain list from v2fly"
+msgstr ""
+
+#. Mass replace button
+#: src/pages/dns_routes.py:166
+msgid "Replace All"
+msgstr ""
+
+#: src/pages/dns_routes.py:168
+msgid "Replace one VPN interface with another for all routes"
+msgstr ""
+
+#: src/pages/dns_routes.py:196
+msgid ""
+"No DNS routes configured yet.\n"
+"Click 'Add List' to get started."
+msgstr ""
+
+#: src/pages/dns_routes.py:271
+msgid "error"
+msgstr ""
+
+#: src/pages/dns_routes.py:273
+msgid "no route"
+msgstr ""
+
+#: src/pages/dns_routes.py:275
+msgid "batches"
+msgstr ""
+
+#: src/pages/dns_routes.py:277
+msgid "disabled"
+msgstr ""
+
+#: src/pages/dns_routes.py:288
+msgid "domains"
+msgstr ""
+
+#: src/pages/dns_routes.py:288
+msgid "updated"
+msgstr ""
+
+#: src/pages/dns_routes.py:293
+msgid "update available"
+msgstr ""
+
+#: src/pages/dns_routes.py:295 src/pages/dns_routes.py:297
+#: src/pages/dns_routes.py:476
+msgid "manual"
+msgstr ""
+
+#: src/pages/dns_routes.py:323
+#, fuzzy
+msgid "Edit list"
+msgstr "Edit Router"
+
+#: src/pages/dns_routes.py:336
+#, fuzzy
+msgid "Delete list"
+msgstr "Delete Router"
+
+#: src/pages/dns_routes.py:362
+#, python-brace-format
+msgid "Delete '{slug}'?"
+msgstr ""
+
+#: src/pages/dns_routes.py:363
+#, python-brace-format
+msgid "This will remove all {n} batch(es) and their routing rules."
+msgstr ""
+
+#: src/pages/dns_routes.py:365 src/pages/dns_routes.py:501
+#: src/pages/dns_routes.py:721 src/pages/dns_routes.py:888
+#: src/widgets/dialogs.py:73
+msgid "Cancel"
+msgstr "Cancel"
+
+#: src/pages/dns_routes.py:366
+#, fuzzy
+msgid "Delete"
+msgstr "Delete Router"
+
+#: src/pages/dns_routes.py:391
+msgid "Add Domain List"
+msgstr ""
+
+#: src/pages/dns_routes.py:408
+msgid "Search v2fly domain list:"
+msgstr ""
+
+#: src/pages/dns_routes.py:410
+msgid "Type to search (e.g. youtube, instagram)..."
+msgstr ""
+
+#: src/pages/dns_routes.py:435
+#, python-brace-format
+msgid "{n} results"
+msgstr ""
+
+#: src/pages/dns_routes.py:453
+#, fuzzy, python-brace-format
+msgid "Selected: {name}"
+msgstr "Selected router: {router_name}"
+
+#: src/pages/dns_routes.py:457
+msgid "v2fly"
+msgstr ""
+
+#: src/pages/dns_routes.py:462 src/pages/dns_routes.py:675
+msgid "List name:"
+msgstr ""
+
+#: src/pages/dns_routes.py:464
+msgid "My custom list"
+msgstr ""
+
+#: src/pages/dns_routes.py:467 src/pages/dns_routes.py:680
+msgid "Domains (one per line):"
+msgstr ""
+
+#. Interface (shared)
+#: src/pages/dns_routes.py:486 src/pages/dns_routes.py:692
+#: src/pages/dns_routes.py:710
+msgid "Route through:"
+msgstr ""
+
+#: src/pages/dns_routes.py:505
+msgid "Add"
+msgstr ""
+
+#: src/pages/dns_routes.py:512
+#, fuzzy
+msgid "Please select an interface."
+msgstr "Please select a router."
+
+#: src/pages/dns_routes.py:519
+#, fuzzy
+msgid "Please select a domain list."
+msgstr "Please select a router."
+
+#: src/pages/dns_routes.py:530
+#, fuzzy
+msgid "Please enter a list name."
+msgstr "Please select a router."
+
+#: src/pages/dns_routes.py:534
+msgid "Please enter at least one domain."
+msgstr ""
+
+#: src/pages/dns_routes.py:601
+#, python-brace-format
+msgid "Creating '{name}'..."
+msgstr ""
+
+#: src/pages/dns_routes.py:641
+#, python-brace-format
+msgid "Downloading '{slug}'..."
+msgstr ""
+
+#: src/pages/dns_routes.py:662
+#, python-brace-format
+msgid "Edit '{slug}'"
+msgstr ""
+
+#. v2fly: show domains read-only in a text view
+#: src/pages/dns_routes.py:695
+msgid "Domains (managed automatically):"
+msgstr ""
+
+#: src/pages/dns_routes.py:725 src/widgets/dialogs.py:77
+msgid "Save"
+msgstr "Save"
+
+#: src/pages/dns_routes.py:787
+msgid "No v2fly lists to sync"
+msgstr ""
+
+#. Single persistent progress toast that we update
+#: src/pages/dns_routes.py:798
+#, python-brace-format
+msgid "Syncing (0/{total})..."
+msgstr ""
+
+#: src/pages/dns_routes.py:812
+#, python-brace-format
+msgid "Syncing ({n}/{total}): {slug}"
+msgstr ""
+
+#: src/pages/dns_routes.py:842
+msgid "Mass Replace VPN Interface"
+msgstr ""
+
+#: src/pages/dns_routes.py:852
+msgid "Replace all routes using:"
+msgstr ""
+
+#: src/pages/dns_routes.py:859
+msgid "With:"
+msgstr ""
+
+#: src/pages/dns_routes.py:876
+#, python-brace-format
+msgid "Will replace in {n} list(s)"
+msgstr ""
+
+#: src/pages/dns_routes.py:892
+msgid "Replace"
+msgstr ""
+
+#: src/pages/dns_routes.py:902
+msgid "Replacing routes..."
+msgstr ""
 
 #: src/pages/me/me.py:41 src/pages/vpn.py:24
 msgid "Loading..."
@@ -170,81 +429,90 @@ msgstr "Show QR Code"
 msgid "Add Peer"
 msgstr "Add Peer"
 
-#: src/router_manager.py:130
+#: src/router_manager.py:132
 #, python-brace-format
 msgid "Using address: {address}"
 msgstr ""
 
-#: src/router_manager.py:301
+#: src/router_manager.py:305
 #, python-brace-format
 msgid "Selected router: {router_name}"
 msgstr "Selected router: {router_name}"
 
-#: src/router_manager.py:309 src/router_manager.py:331
+#: src/router_manager.py:313 src/router_manager.py:339
 msgid "Me"
 msgstr ""
 
-#: src/router_manager.py:313 src/router_manager.py:336
+#: src/router_manager.py:317 src/router_manager.py:344
 msgid "VPN"
 msgstr "VPN"
 
-#: src/router_manager.py:317
+#: src/router_manager.py:321 src/router_manager.py:350
+#, fuzzy
+msgid "Routes"
+msgstr "Add Router"
+
+#: src/router_manager.py:325
 msgid "Clients"
 msgstr "Clients"
 
-#: src/router_manager.py:342
+#: src/router_manager.py:356
 msgid "Online Clients"
 msgstr "Online Clients"
 
-#: src/router_manager.py:348
+#: src/router_manager.py:362
 msgid "Wireguard Server"
 msgstr ""
 
-#: src/router_manager.py:355
+#: src/router_manager.py:369
 msgid "Quick Settings"
 msgstr "Quick Settings"
 
 #. Диалог для добавления роутера
-#: src/router_manager.py:360
+#: src/router_manager.py:374
 msgid "Add Router"
 msgstr "Add Router"
 
-#: src/router_manager.py:372
+#: src/router_manager.py:386
 msgid "Edit Router"
 msgstr "Edit Router"
 
-#: src/router_manager.py:375
+#: src/router_manager.py:389
 msgid "Please select a router to edit."
 msgstr "Please select a router to edit."
 
-#: src/router_manager.py:402
+#: src/router_manager.py:416
 #, python-brace-format
 msgid "Are you sure you want to delete the router '{router_name}'?"
 msgstr "Are you sure you want to delete the router '{router_name}'?"
 
-#: src/router_manager.py:407
+#: src/router_manager.py:421
 msgid "Please select a router to delete."
 msgstr "Please select a router to delete."
 
-#: src/router_manager.py:415
+#: src/router_manager.py:429
 #, python-brace-format
 msgid "Default policy applied to client {client_mac}"
 msgstr "Default policy applied to client {client_mac}"
 
-#: src/router_manager.py:420
+#: src/router_manager.py:434
 #, python-brace-format
 msgid "Failed to apply the default policy to client {client_mac}"
 msgstr "Failed to apply the default policy to client {client_mac}"
 
-#: src/router_manager.py:429
+#: src/router_manager.py:443
 #, python-brace-format
 msgid "Policy {policy_name} applied to client {client_mac}"
 msgstr "Policy {policy_name} applied to client {client_mac}"
 
-#: src/router_manager.py:434
+#: src/router_manager.py:448
 #, python-brace-format
 msgid "Failed to apply policy {policy_name} to client {client_mac}"
 msgstr "Failed to apply policy {policy_name} to client {client_mac}"
+
+#: src/router_manager_app.py:44 src/router_manager_app.py:46
+msgid "Anton Palgunov (Toxblh)"
+msgstr "Anton Palgunov (Toxblh)"
 
 #: src/router_manager_app.py:47
 #, fuzzy
@@ -275,14 +543,6 @@ msgstr "Login:"
 #: src/widgets/dialogs.py:49
 msgid "Password:"
 msgstr "Password:"
-
-#: src/widgets/dialogs.py:73
-msgid "Cancel"
-msgstr "Cancel"
-
-#: src/widgets/dialogs.py:77
-msgid "Save"
-msgstr "Save"
 
 #: src/widgets/dialogs.py:91
 #, fuzzy
@@ -365,9 +625,6 @@ msgstr ""
 
 #~ msgid "Error retrieving WireGuard settings."
 #~ msgstr "Error retrieving WireGuard settings."
-
-#~ msgid "Delete Router"
-#~ msgstr "Delete Router"
 
 #~ msgid "VPN Server Settings"
 #~ msgstr "VPN Server Settings"
