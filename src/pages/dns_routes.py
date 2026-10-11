@@ -735,7 +735,7 @@ def _show_edit_dialog(self, manager, slug, groups, interfaces):
 
     current_iface = groups[0].interface if groups else ""
 
-    iface_combo = _make_iface_combo(interfaces, active_id=current_iface)
+    iface_combo = _make_iface_combo(interfaces, active_id=current_iface, keep_unknown=True)
     content.append(iface_combo)
 
     btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10, margin_top=12)
@@ -886,8 +886,8 @@ def _show_mass_replace_dialog(self, manager, grouped, interfaces):
         count = sum(1 for slug, groups in grouped.items() if groups[0].interface == from_iface)
         preview_label.set_markup(f"<small>{_('Will replace in {n} list(s)').format(n=count)}</small>")
 
-    from_combo.connect("changed", lambda c: update_preview())
-    to_combo.connect("changed", lambda c: update_preview())
+    from_combo.connect("notify::selected", lambda *a: update_preview())
+    to_combo.connect("notify::selected", lambda *a: update_preview())
     update_preview()
     content.append(preview_label)
 
@@ -922,33 +922,56 @@ def _show_mass_replace_dialog(self, manager, grouped, interfaces):
 
 # --- Helpers ---
 
-def _make_iface_combo(interfaces, active_id=None):
-    """Create a ComboBox with colored ● dots (green=connected, gray=disconnected)."""
-    store = Gtk.ListStore(str, str)  # id, markup text
-    for iface in interfaces:
-        desc = iface.get("description", "")
-        display = f"{desc} ({iface['id']})" if desc and desc != iface["id"] else iface["id"]
-        if iface["connected"]:
-            label = f'<span foreground="green">●</span> {display}'
-        else:
-            label = f'<span foreground="gray">●</span> {display}'
-        store.append([iface["id"], label])
-    combo = Gtk.ComboBox(model=store)
-    renderer = Gtk.CellRendererText()
-    combo.pack_start(renderer, True)
-    combo.add_attribute(renderer, "markup", 1)  # Column 1 sets markup=True (non-empty string = truthy)
-    combo.add_attribute(renderer, "text", 1)    # Column 1 has the Pango markup text
-    combo.set_id_column(0)
-    if active_id:
-        for i, iface in enumerate(interfaces):
-            if iface["id"] == active_id:
-                combo.set_active(i)
-                break
+class _IfaceDropDown(Gtk.DropDown):
+    """Interface selector with colored ● dots (green=connected, gray=disconnected).
+    A drop-down always has a row selected, so `placeholder` adds a first row that
+    stands for "leave as is" (its id is None): an interface that is not in the list
+    is then never silently replaced by the first one."""
+
+    def __init__(self, interfaces, placeholder=None):
+        labels = []
+        ids = []
+        if placeholder is not None:
+            labels.append(f'<span foreground="gray">{GLib.markup_escape_text(placeholder)}</span>')
+            ids.append(None)
+        for iface in interfaces:
+            desc = iface.get("description", "")
+            display = f"{desc} ({iface['id']})" if desc and desc != iface["id"] else iface["id"]
+            color = "green" if iface["connected"] else "gray"
+            labels.append(f'<span foreground="{color}">●</span> {GLib.markup_escape_text(display)}')
+        factory = Gtk.SignalListItemFactory()
+        factory.connect("setup", lambda f, item: item.set_child(Gtk.Label(xalign=0, use_markup=True)))
+        factory.connect("bind", lambda f, item: item.get_child().set_markup(item.get_item().get_string()))
+        super().__init__(model=Gtk.StringList.new(labels), factory=factory)
+        self._ids = ids + [iface["id"] for iface in interfaces]
+
+    def get_active(self) -> int:
+        selected = self.get_selected()
+        return selected if selected < len(self._ids) else -1
+
+    def get_active_id(self):
+        selected = self.get_active()
+        return self._ids[selected] if selected >= 0 else None
+
+    def set_active(self, index: int):
+        self.set_selected(index)
+
+
+def _make_iface_combo(interfaces, active_id=None, keep_unknown=False):
+    """Create an interface selector, with `active_id` selected if it is in the list.
+    With `keep_unknown`, an `active_id` that is not in the list (or is empty) gets a
+    row of its own that means "do not change"."""
+    known = [iface["id"] for iface in interfaces]
+    if keep_unknown and active_id not in known:
+        return _IfaceDropDown(interfaces, placeholder=active_id or "—")
+    combo = _IfaceDropDown(interfaces)
+    if active_id in known:
+        combo.set_active(known.index(active_id))
     return combo
 
 
 def _prefill_iface_combo(combo, interfaces):
-    """Pre-select first connected interface in a markup combo."""
+    """Pre-select first connected interface."""
     if interfaces:
         for i, iface in enumerate(interfaces):
             if iface["connected"]:
