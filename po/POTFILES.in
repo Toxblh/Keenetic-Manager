@@ -4,6 +4,7 @@ data/ru.toxblh.KeeneticManager.desktop.in
 data/ru.toxblh.KeeneticManager.metainfo.xml.in
 data/ru.toxblh.KeeneticManager.gschema.xml
 
+src/api/keenetic_dns.py
 src/config.py
 src/helpers/utils.py
 src/main.py

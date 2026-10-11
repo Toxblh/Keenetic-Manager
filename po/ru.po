@@ -569,6 +569,59 @@ msgstr ""
 "В данный момент вы не находитесь в сети маршрутизатора, к которому "
 "подключены."
 
+#: src/pages/dns_routes.py
+#, python-brace-format
+msgid ""
+"Could not load DNS routes from the router.\n"
+"{msg}"
+msgstr ""
+"Не удалось загрузить DNS-маршруты с роутера.\n"
+"{msg}"
+
+#: src/pages/dns_routes.py
+msgid "Retry"
+msgstr "Повторить"
+
+#: src/pages/dns_routes.py
+msgid "Another operation is still running."
+msgstr "Предыдущая операция ещё выполняется."
+
+#: src/pages/dns_routes.py
+#, python-brace-format
+msgid "Router rejected {n} address(es): {first}"
+msgstr "Роутер отклонил адресов: {n}. Первый: {first}"
+
+#: src/pages/dns_routes.py
+#, python-brace-format
+msgid "{slug}: no interface"
+msgstr "{slug}: нет интерфейса"
+
+#: src/pages/dns_routes.py
+#, python-brace-format
+msgid "Sync failed for {lists}"
+msgstr "Не удалось синхронизировать: {lists}"
+
+#: src/api/keenetic_dns.py
+msgid "List name is empty."
+msgstr "Имя списка пустое."
+
+#: src/api/keenetic_dns.py
+msgid "List name must not contain '*' or control characters."
+msgstr "Имя списка не должно содержать «*» и управляющие символы."
+
+#: src/api/keenetic_dns.py
+msgid "Domain list is empty."
+msgstr "Список доменов пуст."
+
+#: src/api/keenetic_dns.py
+msgid "No interface selected."
+msgstr "Интерфейс не выбран."
+
+#: src/api/keenetic_dns.py
+#, python-brace-format
+msgid "A list named '{name}' already exists."
+msgstr "Список с именем «{name}» уже существует."
+
 #~ msgid "Authentication error."
 #~ msgstr "Ошибка аутентификации."
 

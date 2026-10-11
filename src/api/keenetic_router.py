@@ -58,13 +58,13 @@ class KeeneticRouter:
             print(_("Connection error with router {name}: {error}").format(name=self.name, error=e))
             return False
 
-    def keen_request(self, endpoint, data=None):
+    def keen_request(self, endpoint, data=None, timeout=5):
         url = f"{self.base_url}/{endpoint}"
         try:
             if data:
-                response = self.session.post(url, json=data, timeout=5)
+                response = self.session.post(url, json=data, timeout=timeout)
             else:
-                response = self.session.get(url, timeout=5)
+                response = self.session.get(url, timeout=timeout)
             return response
         except RequestException as e:
             print(_("Request error with router {name}: {error}").format(name=self.name, error=e))

@@ -10,6 +10,7 @@ import re
 import time
 import urllib.request
 import urllib.error
+import urllib.parse
 from typing import Optional
 
 V2FLY_DATA_URL = "https://raw.githubusercontent.com/v2fly/domain-list-community/master/data/"
@@ -97,23 +98,31 @@ def search_lists(query: str, limit: int = 20) -> list[str]:
 
 
 def fetch_domain_list(slug: str) -> tuple[list[str], int]:
-    """Download and parse a v2fly domain list.
-    Returns (domains, total_lines). Tries CDN first, then GitHub raw."""
+    """Download and parse a v2fly domain list, following its includes.
+    Returns (domains, total_lines). Tries CDN first, then GitHub raw.
+    Raises ValueError if the list or any list it includes cannot be downloaded,
+    or if it yields no domains: the result is either complete or an error."""
     text, _ = _fetch_raw(slug)
     domains, total, _ = _parse_domain_text(text, slug)
+    if not domains:
+        raise ValueError(f"v2fly list '{slug}' contains no domains")
     return domains, total
 
 
-def _parse_domain_text(text: str, source: str, depth: int = 0, _seen_includes: set = None) -> tuple[list[str], int, int]:
+def _parse_domain_text(text: str, source: str, depth: int = 0, _seen_includes: set = None,
+                       _attrs: tuple = ((), ())) -> tuple[list[str], int, int]:
     """Parse v2fly domain list text recursively.
+    `_attrs` is (required, excluded) attribute names from an `include:list @a @-b`
+    directive: only rules carrying every required attribute and none of the
+    excluded ones are kept.
     Returns (domains, total_lines, includes_count)."""
     if _seen_includes is None:
         _seen_includes = set()
 
     if depth > 10:
-        print(f"[v2fly] Max include depth reached for {source}")
-        return [], 0, 0
+        raise ValueError(f"Include depth limit reached in '{source}'")
 
+    required, excluded = _attrs
     domains = []
     includes_count = 0
     total_lines = 0
@@ -125,38 +134,26 @@ def _parse_domain_text(text: str, source: str, depth: int = 0, _seen_includes: s
             continue
         total_lines += 1
 
-        # Handle include: directives
-        if line.startswith("include:"):
-            include_target = line.split(":", 1)[1].strip()
-            if include_target and include_target not in _seen_includes:
-                _seen_includes.add(include_target)
+        # Handle include directives: "include:list", "include:list @attr @-attr", "include list"
+        if line.startswith("include:") or line.startswith("include "):
+            tokens = line[len("include:"):].split()
+            if not tokens:
+                continue
+            include_target = tokens[0]
+            sub_required = tuple(required) + tuple(t[1:] for t in tokens[1:] if t.startswith("@") and not t.startswith("@-"))
+            sub_excluded = tuple(excluded) + tuple(t[2:] for t in tokens[1:] if t.startswith("@-"))
+            seen_key = (include_target, sub_required, sub_excluded)
+            if seen_key not in _seen_includes:
+                _seen_includes.add(seen_key)
                 includes_count += 1
-                try:
-                    sub_domains, sub_total, sub_includes = _parse_domain_text(
-                        *_fetch_raw(include_target), depth + 1, _seen_includes
-                    )
-                    domains.extend(sub_domains)
-                    total_lines += sub_total
-                    includes_count += sub_includes
-                except ValueError:
-                    print(f"[v2fly] Warning: include '{include_target}' not found for {source}")
-            continue
-
-        # Handle keyword include (without colon prefix)
-        if line.startswith("include "):
-            include_target = line.split(" ", 1)[1].strip()
-            if include_target and include_target not in _seen_includes:
-                _seen_includes.add(include_target)
-                includes_count += 1
-                try:
-                    sub_domains, sub_total, sub_includes = _parse_domain_text(
-                        *_fetch_raw(include_target), depth + 1, _seen_includes
-                    )
-                    domains.extend(sub_domains)
-                    total_lines += sub_total
-                    includes_count += sub_includes
-                except ValueError:
-                    print(f"[v2fly] Warning: include '{include_target}' not found for {source}")
+                # A failed include raises: a partial list must not look complete
+                sub_text, _ = _fetch_raw(include_target)
+                sub_domains, sub_total, sub_includes = _parse_domain_text(
+                    sub_text, include_target, depth + 1, _seen_includes, (sub_required, sub_excluded)
+                )
+                domains.extend(sub_domains)
+                total_lines += sub_total
+                includes_count += sub_includes
             continue
 
         # Skip keyword and regexp rules
@@ -169,29 +166,38 @@ def _parse_domain_text(text: str, source: str, depth: int = 0, _seen_includes: s
             if prefix in ("domain", "full"):
                 line = line.split(":", 1)[1]
 
-        # Skip attribute-only lines (like @ads)
-        if line.startswith("@"):
+        # First token is the domain, the rest are @attributes
+        tokens = line.split()
+        if not tokens or tokens[0].startswith("@"):
             continue
-
-        # Extract domain (first token before space, handle attributes)
-        domain = line.split()[0] if line else ""
-        if domain and not domain.startswith("@") and not domain.startswith("include"):
-            domains.append(domain.lower())
+        attrs = {t[1:] for t in tokens[1:] if t.startswith("@")}
+        if any(a not in attrs for a in required) or any(a in attrs for a in excluded):
+            continue
+        domains.append(tokens[0].lower())
 
     # Deduplicate
     return list(dict.fromkeys(domains)), total_lines, includes_count
 
 
+# Mirror that answered last, tried first: when one is unreachable, waiting for
+# its timeout on every file of a list with dozens of includes takes minutes.
+_preferred_mirror = 0
+
+
 def _fetch_raw(slug: str) -> tuple[str, str]:
-    """Fetch raw text of a v2fly list. Tries CDN first, then GitHub raw."""
-    urls = [V2FLY_CDN_URL + slug, V2FLY_DATA_URL + slug]
+    """Fetch raw text of a v2fly list. Tries CDN and GitHub raw, last working one first."""
+    global _preferred_mirror
+    bases = [V2FLY_CDN_URL, V2FLY_DATA_URL]
+    order = [_preferred_mirror] + [i for i in range(len(bases)) if i != _preferred_mirror]
     last_err = None
-    for url in urls:
+    for i in order:
+        url = bases[i] + urllib.parse.quote(slug)
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "Keenetic-Manager/1.0"})
             with urllib.request.urlopen(req, timeout=15) as resp:
                 text = resp.read().decode("utf-8")
                 print(f"[v2fly] Fetched {slug} from {url.split('/')[2]}")
+                _preferred_mirror = i
                 return text, slug
         except Exception as e:
             last_err = e
