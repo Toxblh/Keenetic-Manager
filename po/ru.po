@@ -622,6 +622,25 @@ msgstr "Интерфейс не выбран."
 msgid "A list named '{name}' already exists."
 msgstr "Список с именем «{name}» уже существует."
 
+#: src/api/keenetic_dns.py
+msgid "List name must not start with 'v2fly:'."
+msgstr "Имя списка не должно начинаться с «v2fly:»."
+
+#: src/api/keenetic_dns.py
+#, python-brace-format
+msgid "No route found for {group}."
+msgstr "Маршрут для {group} не найден."
+
+#: src/api/keenetic_dns.py
+#, python-brace-format
+msgid "Too many domains ({n}), the limit is {limit}."
+msgstr "Слишком много доменов ({n}), лимит — {limit}."
+
+#: src/api/keenetic_dns.py
+#, python-brace-format
+msgid "Group {group} not found."
+msgstr "Группа {group} не найдена."
+
 #~ msgid "Authentication error."
 #~ msgstr "Ошибка аутентификации."
 

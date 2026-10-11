@@ -26,7 +26,7 @@ from typing import Any
 DOMAIN_LIMIT = 300
 GROUP_PREFIX = "rt_"
 # Groups whose description follows the format above are managed by us. All other
-# groups are displayed too, but their description is never rewritten.
+# groups are displayed too, but their description is never rewritten automatically.
 
 # Adding 300 addresses takes the router about 3 s, so writes get a longer
 # timeout than reads and long include lists are split across requests.
@@ -141,6 +141,9 @@ def _check_name(name: str) -> str:
         raise ValueError(_("List name is empty."))
     if "*" in name or any(ord(c) < 32 for c in name):
         raise ValueError(_("List name must not contain '*' or control characters."))
+    if name.startswith("v2fly:"):
+        # The prefix is how a description marks a downloaded list
+        raise ValueError(_("List name must not start with 'v2fly:'."))
     return name
 
 
@@ -434,11 +437,25 @@ class DnsRoutesManager:
 
     # --- Validation / auto-repair ---
 
-    def validate_and_repair_cached(self, groups_data: dict, routes_data: list) -> dict[str, str]:
-        """Validate using pre-fetched data (no extra requests)."""
-        groups = self.get_groups(groups_data=groups_data, routes_data=routes_data)
+    def load_validated(self) -> tuple[dict[str, Any], dict[str, str]]:
+        """Read the router, auto-repair it, and return (data, statuses).
+        `data` is what fetch_all_route_data returns, read again after a repair.
+
+        The read and the repair happen under the router lock. An operation such as
+        an interface change passes through intermediate states (two routes for one
+        group); repairing a snapshot taken in the middle of one would undo it."""
         with self._lock:
-            return self._validate(groups, routes_data)
+            data = self.fetch_all_route_data()
+            groups = self.get_groups(data["groups"], data["routes"])
+            statuses = self._validate(groups, data["routes"])
+            if any(s not in ("ok", "no_interface") for s in statuses.values()):
+                # A repair changed the router, or failed part-way: show what is there now
+                data = self.fetch_all_route_data()
+            return data, statuses
+
+    def validate_and_repair(self) -> dict[str, str]:
+        """Validate managed groups against actual routes, repair if needed."""
+        return self.load_validated()[1]
 
     def _validate(self, groups: list[DnsRouteGroup], routes_data: list) -> dict[str, str]:
         """Validate managed groups against actual routes, repair if needed.
@@ -553,7 +570,7 @@ class DnsRoutesManager:
         indexes = [r.get("index") for r in routes
                    if r.get("group") == group_name and (interface is None or r.get("interface") == interface)]
         if not indexes or not all(indexes):
-            raise ValueError(f"No route found for {group_name}")
+            raise ValueError(_("No route found for {group}.").format(group=group_name))
         self._send([_route_disable(index, enable) for index in indexes])
 
     def _discard_group(self, group_name: str, interface: str):
@@ -578,16 +595,20 @@ class DnsRoutesManager:
     def create_group(self, slug: str, domains: list[str], interface: str,
                      date: str = None, batch: int = 1,
                      existing_names: set[str] = None,
-                     source: str = "v2fly", save: bool = True) -> str:
+                     source: str = "v2fly", save: bool = True, disabled: bool = False) -> str:
         """Create a new DNS route group and its route. Returns the group name.
         Pass existing_names to skip re-fetching; the chosen name is added to it.
-        The route is added after the domains and the description last of all, so a
-        group left behind by a failure never routes a partial list and is never
-        picked up by auto-repair."""
+        With `disabled` the route is created switched off.
+
+        The route is added after the domains and the description last of all. If a
+        step fails the group is removed again. If the router cannot be reached for
+        that either, what stays behind has no managed description, so auto-repair
+        ignores it, and it has a route only if every domain was already written:
+        a partial list is never routed."""
         if not domains:
             raise ValueError(_("Domain list is empty."))
         if len(domains) > DOMAIN_LIMIT:
-            raise ValueError(f"Too many domains ({len(domains)}), max {DOMAIN_LIMIT}")
+            raise ValueError(_("Too many domains ({n}), the limit is {limit}.").format(n=len(domains), limit=DOMAIN_LIMIT))
         if date is None:
             date = datetime.now().strftime("%d%m%y")
 
@@ -604,6 +625,8 @@ class DnsRoutesManager:
             try:
                 self._write_includes(group_name, [{"address": d} for d in domains])
                 self._send([_route_add(group_name, interface)])
+                if disabled:
+                    self._set_routes_enabled(group_name, False, interface=interface)
                 self._send([_group_obj(group_name, {"description": desc})])
             except Exception:
                 self._discard_group(group_name, interface)
@@ -615,22 +638,28 @@ class DnsRoutesManager:
     def update_group_domains(self, group_name: str, domains: list[str], description: str = None,
                              current: list[str] = None, save: bool = True):
         """Make the group contain exactly `domains`, optionally updating the description.
-        Only the difference is sent, so a failure never leaves the group emptied."""
+        Only the difference is sent, each removal paired with an addition, so domains
+        that stay are never touched and a failure part-way leaves the group between
+        the old and the new contents rather than emptied."""
         if len(domains) > DOMAIN_LIMIT:
-            raise ValueError(f"Too many domains ({len(domains)}), max {DOMAIN_LIMIT}")
+            raise ValueError(_("Too many domains ({n}), the limit is {limit}.").format(n=len(domains), limit=DOMAIN_LIMIT))
 
         with self._lock:
             if current is None:
                 groups, _routes = self._read_state()
                 group = next((g for g in groups if g.name == group_name), None)
                 if group is None:
-                    raise ValueError(f"Group {group_name} not found")
+                    raise ValueError(_("Group {group} not found.").format(group=group_name))
                 current = group.domains
 
             new_set, old_set = set(domains), set(current)
-            # Removals first: a full group has no room for the additions otherwise
-            entries = [{"address": d, "no": True} for d in current if d not in new_set]
-            entries += [{"address": d} for d in domains if d not in old_set]
+            removals = [{"address": d, "no": True} for d in current if d not in new_set]
+            additions = [{"address": d} for d in domains if d not in old_set]
+            # Each addition follows a removal: a full group has no room otherwise,
+            # and no request is a run of removals alone unless the list is shrinking
+            entries = []
+            for n in range(max(len(removals), len(additions))):
+                entries += removals[n:n + 1] + additions[n:n + 1]
             self._write_includes(group_name, entries,
                                  last={"description": description} if description else None)
             if save and (entries or description):
@@ -643,7 +672,7 @@ class DnsRoutesManager:
             groups, routes = self._read_state()
             current = next((g for g in groups if g.name == group_name), None)
             if current is None:
-                raise ValueError(f"Group {group_name} not found")
+                raise ValueError(_("Group {group} not found.").format(group=group_name))
 
             changed = self._change_route(group_name, new_interface, routes)
             if current.managed and current.interface != new_interface:
@@ -683,6 +712,8 @@ class DnsRoutesManager:
     def edit_group(self, group_name: str, domains: list[str] = None,
                    interface: str = None, description: str = None):
         """Edit a single unmanaged group in place: domains, route and/or description."""
+        if description:
+            _check_name(description)
         with self._lock:
             if domains is not None:
                 if not domains:
@@ -691,14 +722,16 @@ class DnsRoutesManager:
             if interface:
                 self.update_group_interface(group_name, interface, save=False)
             if description:
-                self.set_group_description(group_name, description, save=False)
+                # A plain name: it must not turn the group into a managed list
+                self.set_group_description(group_name, _check_name(description), save=False)
             self._save()
 
     def apply_list(self, source: str, slug: str, domains: list[str], interface: str,
-                   new_slug: str = None) -> list[str]:
+                   new_slug: str = None, create: bool = False) -> list[str]:
         """Make the router hold exactly `domains` for the list (source, slug), routed
         via `interface`, split into groups of DOMAIN_LIMIT. Creates the list if it
         does not exist; `new_slug` renames it. Only what changed is written.
+        With `create` the list must not exist yet: adding a list never replaces one.
         Returns the group names of the list.
 
         The router is read first and nothing is written if that fails. Groups this
@@ -717,10 +750,13 @@ class DnsRoutesManager:
             groups, routes = self._read_state()
             mine = sorted((g for g in groups if g.managed and g.source == source and g.slug == slug),
                           key=lambda g: g.batch)
-            if not mine or target_slug != slug:
-                # Creating or renaming: the name must not belong to any other list
-                if any(g.slug == target_slug for g in groups if g not in mine):
-                    raise ValueError(_("A list named '{name}' already exists.").format(name=target_slug))
+            taken = any(g.slug == target_slug for g in groups if g not in mine)
+            # Creating or renaming: the name must not belong to any other list.
+            # Creating: nor to this one.
+            if (create and mine) or ((not mine or target_slug != slug) and taken):
+                raise ValueError(_("A list named '{name}' already exists.").format(name=target_slug))
+            # A list switched off stays off when it grows into another group
+            disabled = bool(mine) and all(not g.enabled for g in mine)
 
             names = set(g.name for g in groups)
             result = []
@@ -747,6 +783,7 @@ class DnsRoutesManager:
                             slug=target_slug, domains=chunk, interface=interface,
                             date=today, batch=batch_num,
                             existing_names=names, source=source, save=False,
+                            disabled=disabled,
                         )
                         created.append(name)
                         result.append(name)
@@ -786,12 +823,13 @@ class DnsRoutesManager:
                 self.update_group_interface(name, interface, save=False)
             self._save()
 
-    def sync_list(self, slug: str, interface: str) -> list[str]:
+    def sync_list(self, slug: str, interface: str, create: bool = False) -> list[str]:
         """Sync a v2fly domain list: download, compare, update only what changed.
         Raises without touching the router if the download fails or is empty.
+        With `create` the list must not be on the router yet.
         Returns list of group names."""
         from .v2fly import fetch_domain_list
 
         # Download outside the lock: it does not touch the router
         domains, _total = fetch_domain_list(slug)
-        return self.apply_list("v2fly", slug, domains, interface)
+        return self.apply_list("v2fly", slug, domains, interface, create=create)

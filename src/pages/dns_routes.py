@@ -22,6 +22,7 @@ def show_dns_routes(self):
     self._dns_manager = None
     self._dns_grouped = None
     self._dns_interfaces = None
+    self._dns_router_url = self.current_router.base_url if self.current_router else None
 
     if not self.current_router:
         label = Gtk.Label(label=_("Please select a router."))
@@ -48,7 +49,7 @@ def show_dns_routes(self):
 def _start_load(self, get_manager, messages=None):
     """Fetch router state in a worker thread and render it.
     The result is dropped if another load or a router switch happened meanwhile.
-    `messages` are shown as toasts after the render (which dismisses older toasts)."""
+    `messages` are shown as toasts once the result is on screen."""
     self._dns_load_gen = getattr(self, '_dns_load_gen', 0) + 1
     gen = self._dns_load_gen
     messages = list(messages or [])
@@ -56,11 +57,7 @@ def _start_load(self, get_manager, messages=None):
     def work():
         try:
             manager = get_manager()
-            data = manager.fetch_all_route_data()
-            statuses = manager.validate_and_repair_cached(data["groups"], data["routes"])
-            if any(s not in ("ok", "no_interface", "error") for s in statuses.values()):
-                # Auto-repair changed the router: show what is there now
-                data = manager.fetch_all_route_data()
+            data, statuses = manager.load_validated()
             grouped = manager.get_grouped_by_slug_cached(data["groups"], data["routes"])
             interfaces = manager.get_vpn_interfaces(data=data["interfaces"])
         except Exception as ex:
@@ -74,6 +71,9 @@ def _start_load(self, get_manager, messages=None):
         self._dns_manager = manager
         self._dns_grouped = grouped
         self._dns_interfaces = interfaces
+        overlay = getattr(self, '_dns_toast_overlay', None)
+        if overlay:
+            overlay.dismiss_all()  # the loading toast and anything about the old state
         _render(self, manager, grouped, interfaces, statuses)
         _show_status_toasts(self, statuses, interfaces)
         for msg in messages:
@@ -144,11 +144,16 @@ def _refresh_dns_routes(self):
 def _reload_dns_routes(self, messages=None):
     """Silent reload: re-fetch data, update cache, re-render in-place. No page clear, no loading toast."""
     manager = getattr(self, '_dns_manager', None)
-    if not manager:
-        show_dns_routes(self)
+    if manager:
+        _save_scroll_position(self)
+        _start_load(self, lambda: manager, messages)
         return
-    _save_scroll_position(self)
-    _start_load(self, lambda: manager, messages)
+    router = self.current_router
+    if router and getattr(self, '_dns_toast_overlay', None) and getattr(self, '_dns_router_url', None) == router.base_url:
+        # The first load of this page is still in flight: replace it, keeping the messages
+        _start_load(self, lambda: DnsRoutesManager(router), messages)
+    else:
+        show_dns_routes(self)
 
 
 def _run_op(self, manager, fn, progress=None):
@@ -186,7 +191,9 @@ def _run_op(self, manager, fn, progress=None):
         self._dns_busy = False
         if toast:
             toast.dismiss()
-        if manager is not getattr(self, '_dns_manager', None):
+        # Re-entering the page builds a new manager for the same router, so compare
+        # routers, not manager objects
+        if manager.router.base_url != getattr(self, '_dns_router_url', None):
             return False  # the page now shows another router
         messages = []
         if warnings:
@@ -237,8 +244,6 @@ def _iface_display(iface_id: str, interfaces: list[dict]) -> str:
 def _render(self, manager: DnsRoutesManager, grouped: dict, interfaces: list[dict], statuses: dict = None):
     """Render the DNS routes UI."""
     overlay = getattr(self, '_dns_toast_overlay', None)
-    if overlay:
-        overlay.dismiss_all()
     if statuses is None:
         statuses = {}
     print(f"[dns_routes] _render: {len(grouped)} slug(s), {len(interfaces)} interface(s), statuses={statuses}")
@@ -624,8 +629,8 @@ def _show_add_dialog(self, manager, interfaces):
                 error_label.set_markup(f'<span foreground="red">{_("Please select a domain list.")}</span>')
                 error_label.set_visible(True)
                 return
-            dialog.close()
-            _do_add_list(self, manager, slug, iface_id, interfaces)
+            if _do_add_list(self, manager, slug, iface_id, interfaces):
+                dialog.close()
         else:
             name = name_entry.get_text().strip()
             buf = domains_text.get_buffer()
@@ -639,8 +644,8 @@ def _show_add_dialog(self, manager, interfaces):
                 error_label.set_markup(f'<span foreground="red">{_("Please enter at least one domain.")}</span>')
                 error_label.set_visible(True)
                 return
-            dialog.close()
-            _do_add_manual(self, manager, name, domains, iface_id)
+            if _do_add_manual(self, manager, name, domains, iface_id):
+                dialog.close()
 
     add_btn.connect("clicked", on_add_clicked)
     btn_box.append(add_btn)
@@ -659,15 +664,15 @@ def _show_add_dialog(self, manager, interfaces):
 
 def _do_add_manual(self, manager, name, domains, interface):
     """Create a manual (non-v2fly) domain list."""
-    _run_op(self, manager,
-            lambda progress: manager.apply_list("manual", name, domains, interface),
-            progress=_("Creating '{name}'...").format(name=name))
+    return _run_op(self, manager,
+                   lambda progress: manager.apply_list("manual", name, domains, interface, create=True),
+                   progress=_("Creating '{name}'...").format(name=name))
 
 
 def _do_add_list(self, manager, slug, interface, interfaces):
-    _run_op(self, manager,
-            lambda progress: manager.sync_list(slug, interface),
-            progress=_("Downloading '{slug}'...").format(slug=slug))
+    return _run_op(self, manager,
+                   lambda progress: manager.sync_list(slug, interface, create=True),
+                   progress=_("Downloading '{slug}'...").format(slug=slug))
 
 
 def _show_edit_dialog(self, manager, slug, groups, interfaces):

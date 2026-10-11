@@ -99,7 +99,7 @@ def search_lists(query: str, limit: int = 20) -> list[str]:
 
 def fetch_domain_list(slug: str) -> tuple[list[str], int]:
     """Download and parse a v2fly domain list, following its includes.
-    Returns (domains, total_lines). Tries CDN first, then GitHub raw.
+    Returns (domains, total_lines).
     Raises ValueError if the list or any list it includes cannot be downloaded,
     or if it yields no domains: the result is either complete or an error."""
     text, _ = _fetch_raw(slug)

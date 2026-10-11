@@ -8,6 +8,7 @@ the rest of the command.
 """
 import copy
 import threading
+import time
 from datetime import datetime
 
 import pytest
@@ -59,6 +60,8 @@ class FakeRouter:
         self.fail_post_number = None   # 1-based index among write requests
         self.unauthorized_once = False
         self.batch_show_as_dict = False
+        self.read_delay = 0            # seconds every read takes, to make threads overlap
+        self.on_write = None           # called with the 1-based number of each write request
 
     # -- KeeneticRouter interface --
 
@@ -73,14 +76,18 @@ class FakeRouter:
         if not data:
             if self.fail_gets:
                 return None
+            time.sleep(self.read_delay)
             return self._get(endpoint)
         if isinstance(data, list) and data and "show" in data[0]:
             if self.fail_gets:
                 return None
+            time.sleep(self.read_delay)
             return self._show(data)
         self.posts.append(data)
         if self.fail_post_number == len(self.posts):
             return None
+        if self.on_write:
+            self.on_write(len(self.posts))
         return FakeResponse(200, [self._run(cmd) for cmd in data])
 
     # -- helpers for tests --
@@ -419,16 +426,19 @@ class TestApplyList:
         assert router.route_view() == [("rt_0", "Wireguard0", False)]
         assert router.saves == 0
 
-    def test_group_left_by_a_dead_connection_is_not_managed(self, manager, router):
-        """If even the clean-up cannot reach the router, the leftover has no managed
-        description, so auto-repair will not give it a route."""
+    @pytest.mark.parametrize("dies_at", [1, 2, 3, 4, 5])
+    def test_group_left_by_a_dead_connection(self, manager, router, dies_at):
+        """The connection dies for good at one of the five writes that create a
+        250-domain group (three include requests, the route, the description), so
+        the clean-up cannot reach the router either. Whatever is left must not be
+        managed (auto-repair would give it a route) and must not route a partial list."""
         real = router.keen_request
-        state = {"posts": 0}
+        state = {"writes": 0}
 
         def dying(endpoint, data=None, timeout=5):
             if data and "show" not in data[0]:
-                state["posts"] += 1
-                if state["posts"] >= 3:
+                state["writes"] += 1
+                if state["writes"] >= dies_at:
                     return None
             return real(endpoint, data, timeout)
 
@@ -436,11 +446,49 @@ class TestApplyList:
         with pytest.raises(ConnectionError):
             manager.apply_list("manual", "big", names(250), "Wireguard0")
         router.keen_request = real
+
         leftover = manager.get_groups()
-        assert leftover and not any(g.managed for g in leftover)
-        assert router.routes == []
-        assert set(manager.validate_and_repair_cached(router.groups, router.routes).values()) == {"ok"}
-        assert router.routes == []
+        assert not any(g.managed for g in leftover)
+        for g in leftover:
+            if g.routes:
+                assert len(g.domains) == 250
+        assert router.saves == 0
+        # auto-repair leaves it alone
+        routes_before = router.route_view()
+        assert set(manager.validate_and_repair().values()) <= {"ok"}
+        assert router.route_view() == routes_before
+
+    def test_add_refuses_an_existing_list_of_the_same_source(self, manager, router):
+        manager.apply_list("manual", "work", ["a.com", "b.com", "c.com"], "Wireguard0")
+        posts = len(router.posts)
+        with pytest.raises(ValueError, match="already exists"):
+            manager.apply_list("manual", "work", ["new.com"], "Wireguard1", create=True)
+        assert len(router.posts) == posts
+        assert router.domains("rt_0") == ["a.com", "b.com", "c.com"]
+        assert router.route_view() == [("rt_0", "Wireguard0", False)]
+
+    def test_add_creates_when_the_name_is_free(self, manager, router):
+        assert manager.apply_list("manual", "work", ["a.com"], "Wireguard0", create=True) == ["rt_0"]
+
+    def test_disabled_list_stays_disabled_when_it_grows_a_batch(self, manager, router):
+        manager.apply_list("manual", "big", names(300), "Wireguard0")
+        manager.toggle_list(["rt_0"], False)
+        manager.apply_list("manual", "big", names(350), "Wireguard0")
+        assert router.route_view() == [("rt_0", "Wireguard0", True), ("rt_1", "Wireguard0", True)]
+
+    def test_enabled_list_grows_an_enabled_batch(self, manager, router):
+        manager.apply_list("manual", "big", names(300), "Wireguard0")
+        manager.apply_list("manual", "big", names(350), "Wireguard0")
+        assert router.route_view() == [("rt_0", "Wireguard0", False), ("rt_1", "Wireguard0", False)]
+
+    def test_replacing_many_domains_never_empties_the_group(self, manager, router):
+        manager.apply_list("manual", "mine", names(150, "old"), "Wireguard0")
+        router.fail_post_number = len(router.posts) + 2      # second include request of the edit
+        with pytest.raises(ConnectionError):
+            manager.apply_list("manual", "mine", names(150, "new"), "Wireguard0")
+        left = router.domains("rt_0")
+        assert len(left) == 150
+        assert any(d.startswith("old") for d in left) and any(d.startswith("new") for d in left)
 
 
 class TestCollisions:
@@ -467,6 +515,15 @@ class TestCollisions:
         assert router.domains("rt_1") == ["hand-typed.com"]
         assert router.groups["rt_1"]["description"] == "youtube*Wireguard0*010101*1"
 
+    @pytest.mark.parametrize("name", ["v2fly:youtube", "v2fly:"])
+    def test_manual_name_cannot_carry_the_v2fly_marker(self, manager, router, name):
+        with pytest.raises(ValueError):
+            manager.apply_list("manual", name, ["mine.com"], "Wireguard0")
+        router.add_group("rt_0", f"mine*Wireguard0*{TODAY}*1", ["mine.com"], "Wireguard0")
+        with pytest.raises(ValueError):
+            manager.apply_list("manual", "mine", ["mine.com"], "Wireguard0", new_slug=name)
+        assert router.posts == []
+
     def test_rows_do_not_merge_across_sources(self, manager, router):
         router.add_group("rt_0", f"v2fly:youtube*Wireguard0*{TODAY}*1", ["a.com"], "Wireguard0")
         router.add_group("rt_1", f"youtube*Wireguard0*{TODAY}*1", ["b.com"], "Wireguard0")
@@ -482,6 +539,9 @@ class TestCollisions:
         assert list(rows) == ["big"] and [g.batch for g in rows["big"]] == [1, 2]
 
     def test_concurrent_creates_get_distinct_groups(self, router):
+        # Slow reads: without the shared lock every thread would read the router
+        # while it is still empty and pick rt_0
+        router.read_delay = 0.02
         errors = []
 
         def create(i):
@@ -522,7 +582,14 @@ class TestSync:
         assert router.route_view() == [("rt_0", "Wireguard1", False)]
         assert router.groups["rt_0"]["description"] == f"v2fly:a*Wireguard1*{TODAY}*1"
         # and auto-repair has nothing to revert
-        assert manager.validate_and_repair_cached(router.groups, router.routes) == {"rt_0": "ok"}
+        assert manager.validate_and_repair() == {"rt_0": "ok"}
+
+    def test_adding_an_already_added_v2fly_list_is_refused(self, manager, router, monkeypatch):
+        router.add_group("rt_0", f"v2fly:a*Wireguard0*010101*1", ["a.com"], "Wireguard0")
+        monkeypatch.setattr(v2fly, "fetch_domain_list", lambda slug: (["new.com"], 1))
+        with pytest.raises(ValueError, match="already exists"):
+            manager.sync_list("a", "Wireguard1", create=True)
+        assert router.posts == [] and router.route_view() == [("rt_0", "Wireguard0", False)]
 
     def test_one_save_per_sync(self, manager, router, monkeypatch):
         router.add_group("rt_0", f"v2fly:a*Wireguard0*010101*1", names(300), "Wireguard0")
@@ -634,6 +701,20 @@ class TestEditGroup:
             manager.edit_group("domain-list0", domains=names(301))
         assert router.posts == [] and router.domains("domain-list0") == ["a.com"]
 
+    @pytest.mark.parametrize("name", ["My*list*2", "v2fly:telegram*x*y", "**x**", "v2fly:telegram"])
+    def test_rename_cannot_turn_an_external_group_into_a_managed_list(self, manager, router, name):
+        router.add_group("domain-list0", "Telegram", ["t.me"], "Wireguard0")
+        with pytest.raises(ValueError):
+            manager.edit_group("domain-list0", domains=["t.me", "telegram.org"], description=name)
+        assert router.posts == []
+        assert router.groups["domain-list0"]["description"] == "Telegram"
+
+    def test_plain_rename_of_an_external_group(self, manager, router):
+        router.add_group("domain-list0", "Telegram", ["t.me"], "Wireguard0")
+        manager.edit_group("domain-list0", description="Телеграм & Co")
+        assert router.groups["domain-list0"]["description"] == "Телеграм & Co"
+        assert not manager.get_groups()[0].managed
+
     def test_clearing_all_domains_is_refused(self, manager, router):
         router.add_group("domain-list0", "Telegram", ["a.com"], "Wireguard0")
         with pytest.raises(ValueError):
@@ -644,27 +725,54 @@ class TestEditGroup:
 class TestValidate:
     def test_missing_route_is_repaired(self, manager, router):
         router.add_group("rt_0", f"v2fly:a*Wireguard0*{TODAY}*1", ["a.com"])
-        statuses = manager.validate_and_repair_cached(router.groups, list(router.routes))
+        statuses = manager.validate_and_repair()
         assert statuses == {"rt_0": "repaired:→Wireguard0"}
         assert router.route_view() == [("rt_0", "Wireguard0", False)]
 
     def test_duplicate_routes_are_cleaned(self, manager, router):
         router.add_group("rt_0", f"v2fly:a*Wireguard1*{TODAY}*1", ["a.com"], "Wireguard0")
         router._add_route("rt_0", "Wireguard1")
-        statuses = manager.validate_and_repair_cached(router.groups, list(router.routes))
+        statuses = manager.validate_and_repair()
         assert statuses == {"rt_0": "cleaned:1:→Wireguard1"}
         assert router.route_view() == [("rt_0", "Wireguard1", False)]
 
     def test_route_changed_outside_updates_description(self, manager, router):
         router.add_group("rt_0", f"v2fly:a*Wireguard0*{TODAY}*1", ["a.com"], "Wireguard1")
-        statuses = manager.validate_and_repair_cached(router.groups, list(router.routes))
+        statuses = manager.validate_and_repair()
         assert statuses == {"rt_0": "updated: Wireguard0 → Wireguard1"}
         assert router.groups["rt_0"]["description"] == f"v2fly:a*Wireguard1*{TODAY}*1"
+
+    def test_repair_waits_for_a_running_operation(self, manager, router):
+        """An interface change passes through a state with two routes. A page load
+        arriving then must not repair that snapshot: it would delete the new route."""
+        router.add_group("rt_0", f"v2fly:a*Wireguard0*{TODAY}*1", ["a.com"], "Wireguard0")
+        seen = {}
+
+        def during_operation(write_number):
+            if "loader" in seen:
+                return
+            # First write of the operation: the new route was just added
+            seen["routes_mid"] = len(router.routes)
+            loader = threading.Thread(target=lambda: seen.setdefault(
+                "statuses", DnsRoutesManager(router).validate_and_repair()))
+            seen["loader"] = loader
+            loader.start()
+            loader.join(0.2)
+            seen["blocked"] = loader.is_alive()
+
+        router.on_write = during_operation
+        manager.update_group_interface("rt_0", "Wireguard1")
+        router.on_write = None
+        seen["loader"].join(5)
+
+        assert seen["blocked"], "the load ran in the middle of the operation"
+        assert seen["statuses"] == {"rt_0": "ok"}
+        assert router.route_view() == [("rt_0", "Wireguard1", False)]
 
     def test_healthy_state_writes_nothing(self, manager, router):
         router.add_group("rt_0", f"v2fly:a*Wireguard0*{TODAY}*1", ["a.com"], "Wireguard0")
         router.add_group("domain-list0", "Telegram", ["t.me"])
-        statuses = manager.validate_and_repair_cached(router.groups, list(router.routes))
+        statuses = manager.validate_and_repair()
         assert set(statuses.values()) == {"ok"} and router.posts == []
 
 
