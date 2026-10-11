@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keeneticmanager\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-25 03:11+0300\n"
+"POT-Creation-Date: 2026-10-12 01:32+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -47,6 +47,48 @@ msgstr ""
 msgid "Login"
 msgstr ""
 
+#: src/api/keenetic_dns.py:141
+msgid "List name is empty."
+msgstr ""
+
+#: src/api/keenetic_dns.py:143
+msgid "List name must not contain '*' or control characters."
+msgstr ""
+
+#. The prefix is how a description marks a downloaded list
+#: src/api/keenetic_dns.py:146
+msgid "List name must not start with 'v2fly:'."
+msgstr ""
+
+#: src/api/keenetic_dns.py:573
+#, python-brace-format
+msgid "No route found for {group}."
+msgstr ""
+
+#: src/api/keenetic_dns.py:609 src/api/keenetic_dns.py:720
+#: src/api/keenetic_dns.py:742
+msgid "Domain list is empty."
+msgstr ""
+
+#: src/api/keenetic_dns.py:611 src/api/keenetic_dns.py:645
+#, python-brace-format
+msgid "Too many domains ({n}), the limit is {limit}."
+msgstr ""
+
+#: src/api/keenetic_dns.py:652 src/api/keenetic_dns.py:675
+#, python-brace-format
+msgid "Group {group} not found."
+msgstr ""
+
+#: src/api/keenetic_dns.py:744
+msgid "No interface selected."
+msgstr ""
+
+#: src/api/keenetic_dns.py:757
+#, python-brace-format
+msgid "A list named '{name}' already exists."
+msgstr ""
+
 #: src/config.py:16
 #, python-brace-format
 msgid "Error loading routers: {e}"
@@ -69,264 +111,291 @@ msgstr ""
 msgid "Clear search field"
 msgstr ""
 
-#: src/pages/clients.py:66 src/pages/dns_routes.py:22 src/pages/vpn.py:28
+#: src/pages/clients.py:66 src/pages/dns_routes.py:28 src/pages/vpn.py:28
 #: src/pages/wg_server.py:12
 msgid "Please select a router."
 msgstr ""
 
 #. Show loading toast
-#: src/pages/dns_routes.py:33
+#: src/pages/dns_routes.py:39
 msgid "Loading DNS routes..."
 msgstr ""
 
-#: src/pages/dns_routes.py:62 src/pages/dns_routes.py:576
-#, python-brace-format
-msgid "✓ repaired → {name}"
-msgstr ""
-
-#: src/pages/dns_routes.py:68 src/pages/dns_routes.py:583
-#, python-brace-format
-msgid "✓ repaired → {name} ({count})"
-msgstr ""
-
-#: src/pages/dns_routes.py:68 src/pages/dns_routes.py:262
-#: src/pages/dns_routes.py:583
-#, python-brace-format
-msgid "cleaned {n} dups"
-msgstr ""
-
-#: src/pages/dns_routes.py:74 src/pages/dns_routes.py:589
-#, python-brace-format
-msgid "✓ updated {old} → {new}"
-msgstr ""
-
-#: src/pages/dns_routes.py:78 src/pages/dns_routes.py:593
-#: src/pages/dns_routes.py:635 src/pages/dns_routes.py:649
+#: src/pages/dns_routes.py:94 src/pages/dns_routes.py:203
 #, python-brace-format
 msgid "Error: {msg}"
 msgstr ""
 
-#: src/pages/dns_routes.py:148
+#: src/pages/dns_routes.py:105
+#, python-brace-format
+msgid ""
+"Could not load DNS routes from the router.\n"
+"{msg}"
+msgstr ""
+
+#: src/pages/dns_routes.py:109
+msgid "Retry"
+msgstr ""
+
+#: src/pages/dns_routes.py:121
+#, python-brace-format
+msgid "✓ repaired → {name}"
+msgstr ""
+
+#: src/pages/dns_routes.py:125
+#, python-brace-format
+msgid "✓ repaired → {name} ({count})"
+msgstr ""
+
+#: src/pages/dns_routes.py:127 src/pages/dns_routes.py:378
+#, python-brace-format
+msgid "cleaned {n} dups"
+msgstr ""
+
+#: src/pages/dns_routes.py:130
+#, python-brace-format
+msgid "✓ updated {old} → {new}"
+msgstr ""
+
+#: src/pages/dns_routes.py:166
+msgid "Another operation is still running."
+msgstr ""
+
+#: src/pages/dns_routes.py:200
+#, python-brace-format
+msgid "Router rejected {n} address(es): {first}"
+msgstr ""
+
+#: src/pages/dns_routes.py:264
 msgid "DNS Routes"
 msgstr ""
 
-#: src/pages/dns_routes.py:153
+#: src/pages/dns_routes.py:269
 msgid "Sync All"
 msgstr ""
 
-#: src/pages/dns_routes.py:155
+#: src/pages/dns_routes.py:271
 msgid "Update all domain lists from v2fly"
 msgstr ""
 
-#: src/pages/dns_routes.py:159
+#: src/pages/dns_routes.py:275
 msgid "Add List"
 msgstr ""
 
-#: src/pages/dns_routes.py:161
+#: src/pages/dns_routes.py:277
 msgid "Add a new domain list from v2fly"
 msgstr ""
 
 #. Mass replace button
-#: src/pages/dns_routes.py:166
+#: src/pages/dns_routes.py:282
 msgid "Replace All"
 msgstr ""
 
-#: src/pages/dns_routes.py:168
+#: src/pages/dns_routes.py:284
 msgid "Replace one VPN interface with another for all routes"
 msgstr ""
 
-#: src/pages/dns_routes.py:196
+#: src/pages/dns_routes.py:312
 msgid ""
 "No DNS routes configured yet.\n"
 "Click 'Add List' to get started."
 msgstr ""
 
-#: src/pages/dns_routes.py:271
+#: src/pages/dns_routes.py:387
 msgid "error"
 msgstr ""
 
-#: src/pages/dns_routes.py:273
+#: src/pages/dns_routes.py:389
 msgid "no route"
 msgstr ""
 
-#: src/pages/dns_routes.py:275
+#: src/pages/dns_routes.py:391
 msgid "batches"
 msgstr ""
 
-#: src/pages/dns_routes.py:277
+#: src/pages/dns_routes.py:393
 msgid "disabled"
 msgstr ""
 
-#: src/pages/dns_routes.py:288
+#: src/pages/dns_routes.py:404
 msgid "domains"
 msgstr ""
 
-#: src/pages/dns_routes.py:288
+#: src/pages/dns_routes.py:404
 msgid "updated"
 msgstr ""
 
-#: src/pages/dns_routes.py:293
+#: src/pages/dns_routes.py:409
 msgid "update available"
 msgstr ""
 
-#: src/pages/dns_routes.py:295 src/pages/dns_routes.py:297
-#: src/pages/dns_routes.py:476
+#: src/pages/dns_routes.py:411 src/pages/dns_routes.py:413
+#: src/pages/dns_routes.py:586
 msgid "manual"
 msgstr ""
 
-#: src/pages/dns_routes.py:323
+#: src/pages/dns_routes.py:439
 msgid "Edit list"
 msgstr ""
 
-#: src/pages/dns_routes.py:336
+#: src/pages/dns_routes.py:452
 msgid "Delete list"
 msgstr ""
 
-#: src/pages/dns_routes.py:362
+#: src/pages/dns_routes.py:477
 #, python-brace-format
 msgid "Delete '{slug}'?"
 msgstr ""
 
-#: src/pages/dns_routes.py:363
+#: src/pages/dns_routes.py:478
 #, python-brace-format
 msgid "This will remove all {n} batch(es) and their routing rules."
 msgstr ""
 
-#: src/pages/dns_routes.py:365 src/pages/dns_routes.py:501
-#: src/pages/dns_routes.py:721 src/pages/dns_routes.py:888
+#: src/pages/dns_routes.py:480 src/pages/dns_routes.py:611
+#: src/pages/dns_routes.py:745 src/pages/dns_routes.py:899
 #: src/widgets/dialogs.py:73
 msgid "Cancel"
 msgstr ""
 
-#: src/pages/dns_routes.py:366
+#: src/pages/dns_routes.py:481
 msgid "Delete"
 msgstr ""
 
-#: src/pages/dns_routes.py:391
+#: src/pages/dns_routes.py:499
 msgid "Add Domain List"
 msgstr ""
 
-#: src/pages/dns_routes.py:408
+#: src/pages/dns_routes.py:516
 msgid "Search v2fly domain list:"
 msgstr ""
 
-#: src/pages/dns_routes.py:410
+#: src/pages/dns_routes.py:518
 msgid "Type to search (e.g. youtube, instagram)..."
 msgstr ""
 
-#: src/pages/dns_routes.py:435
+#: src/pages/dns_routes.py:545
 #, python-brace-format
 msgid "{n} results"
 msgstr ""
 
-#: src/pages/dns_routes.py:453
+#: src/pages/dns_routes.py:563
 #, python-brace-format
 msgid "Selected: {name}"
 msgstr ""
 
-#: src/pages/dns_routes.py:457
+#: src/pages/dns_routes.py:567
 msgid "v2fly"
 msgstr ""
 
-#: src/pages/dns_routes.py:462 src/pages/dns_routes.py:675
+#: src/pages/dns_routes.py:572 src/pages/dns_routes.py:699
 msgid "List name:"
 msgstr ""
 
-#: src/pages/dns_routes.py:464
+#: src/pages/dns_routes.py:574
 msgid "My custom list"
 msgstr ""
 
-#: src/pages/dns_routes.py:467 src/pages/dns_routes.py:680
+#: src/pages/dns_routes.py:577 src/pages/dns_routes.py:704
 msgid "Domains (one per line):"
 msgstr ""
 
 #. Interface (shared)
-#: src/pages/dns_routes.py:486 src/pages/dns_routes.py:692
-#: src/pages/dns_routes.py:710
+#: src/pages/dns_routes.py:596 src/pages/dns_routes.py:716
+#: src/pages/dns_routes.py:734
 msgid "Route through:"
 msgstr ""
 
-#: src/pages/dns_routes.py:505
+#: src/pages/dns_routes.py:615
 msgid "Add"
 msgstr ""
 
-#: src/pages/dns_routes.py:512
+#: src/pages/dns_routes.py:622
 msgid "Please select an interface."
 msgstr ""
 
-#: src/pages/dns_routes.py:519
+#: src/pages/dns_routes.py:629
 msgid "Please select a domain list."
 msgstr ""
 
-#: src/pages/dns_routes.py:530
+#: src/pages/dns_routes.py:640
 msgid "Please enter a list name."
 msgstr ""
 
-#: src/pages/dns_routes.py:534
+#: src/pages/dns_routes.py:644 src/pages/dns_routes.py:770
 msgid "Please enter at least one domain."
 msgstr ""
 
-#: src/pages/dns_routes.py:601
+#: src/pages/dns_routes.py:669
 #, python-brace-format
 msgid "Creating '{name}'..."
 msgstr ""
 
-#: src/pages/dns_routes.py:641
+#: src/pages/dns_routes.py:675
 #, python-brace-format
 msgid "Downloading '{slug}'..."
 msgstr ""
 
-#: src/pages/dns_routes.py:662
+#: src/pages/dns_routes.py:686
 #, python-brace-format
 msgid "Edit '{slug}'"
 msgstr ""
 
 #. v2fly: show domains read-only in a text view
-#: src/pages/dns_routes.py:695
+#: src/pages/dns_routes.py:719
 msgid "Domains (managed automatically):"
 msgstr ""
 
-#: src/pages/dns_routes.py:725 src/widgets/dialogs.py:77
+#: src/pages/dns_routes.py:749 src/widgets/dialogs.py:77
 msgid "Save"
 msgstr ""
 
-#: src/pages/dns_routes.py:787
+#: src/pages/dns_routes.py:811
 msgid "No v2fly lists to sync"
 msgstr ""
 
-#. Single persistent progress toast that we update
-#: src/pages/dns_routes.py:798
+#: src/pages/dns_routes.py:822
 #, python-brace-format
-msgid "Syncing (0/{total})..."
+msgid "{slug}: no interface"
 msgstr ""
 
-#: src/pages/dns_routes.py:812
+#: src/pages/dns_routes.py:824
 #, python-brace-format
 msgid "Syncing ({n}/{total}): {slug}"
 msgstr ""
 
-#: src/pages/dns_routes.py:842
+#: src/pages/dns_routes.py:832
+#, python-brace-format
+msgid "Sync failed for {lists}"
+msgstr ""
+
+#: src/pages/dns_routes.py:834
+#, python-brace-format
+msgid "Syncing (0/{total})..."
+msgstr ""
+
+#: src/pages/dns_routes.py:853
 msgid "Mass Replace VPN Interface"
 msgstr ""
 
-#: src/pages/dns_routes.py:852
+#: src/pages/dns_routes.py:863
 msgid "Replace all routes using:"
 msgstr ""
 
-#: src/pages/dns_routes.py:859
+#: src/pages/dns_routes.py:870
 msgid "With:"
 msgstr ""
 
-#: src/pages/dns_routes.py:876
+#: src/pages/dns_routes.py:887
 #, python-brace-format
 msgid "Will replace in {n} list(s)"
 msgstr ""
 
-#: src/pages/dns_routes.py:892
+#: src/pages/dns_routes.py:903
 msgid "Replace"
 msgstr ""
 
-#: src/pages/dns_routes.py:902
+#: src/pages/dns_routes.py:914
 msgid "Replacing routes..."
 msgstr ""
 

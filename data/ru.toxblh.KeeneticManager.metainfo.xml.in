@@ -58,6 +58,19 @@
     </screenshots>
 
     <releases>
+        <release version="0.6.0" date="2026-10-12">
+            <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.6.0</url>
+            <description translate="no">
+                <p>DNS routes</p>
+                <ul>
+                    <li>New Routes page: route domain lists through a VPN interface (KeeneticOS 5+)</li>
+                    <li>Ready-made domain lists from v2fly, kept up to date with Sync All</li>
+                    <li>Manual lists of any size, split across groups automatically</li>
+                    <li>Replace one VPN interface with another for all lists at once</li>
+                    <li>Errors reported by the router are shown instead of being ignored</li>
+                </ul>
+            </description>
+        </release>
         <release version="0.5.0" date="2026-02-02">
             <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.5.0</url>
             <description translate="no">
