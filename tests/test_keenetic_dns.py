@@ -14,7 +14,7 @@ from datetime import datetime
 import pytest
 
 from src.api import keenetic_dns, v2fly
-from src.api.keenetic_dns import DnsRoutesManager, DnsRouteGroup, RciError, _scan_status
+from src.api.keenetic_dns import DnsRoutesManager, DnsRouteGroup, RciError, _scan_status, find_overlaps
 
 TODAY = datetime.now().strftime("%d%m%y")
 
@@ -786,3 +786,154 @@ class TestDescription:
     def test_plain_description_is_not_managed(self):
         assert not DnsRouteGroup.is_managed("📺  YouTube")
         assert DnsRouteGroup.is_managed("mine*Wireguard1*240726*1")
+
+
+def _group(name, slug, domains, interface="Wireguard0", source="manual", enabled=True, batch=1):
+    prefix = "v2fly:" if source == "v2fly" else ""
+    return DnsRouteGroup(name, description=f"{prefix}{slug}*{interface}*{TODAY}*{batch}", domains=domains,
+                         interface=interface, slug=slug, source=source, enabled=enabled, batch=batch)
+
+
+class TestFindOverlaps:
+    def test_same_domain_in_different_tunnels_is_reported_on_both_sides(self):
+        grouped = {"a": [_group("rt_0", "a", ["x.com", "only-a.com"], "Wireguard0")],
+                   "b": [_group("rt_1", "b", ["X.com", "only-b.com"], "Wireguard1")]}
+        assert find_overlaps(grouped) == {"a": [{"list": "b", "domains": ["x.com"]}],
+                                          "b": [{"list": "a", "domains": ["x.com"]}]}
+
+    def test_same_tunnel_is_not_a_conflict(self):
+        grouped = {"a": [_group("rt_0", "a", ["x.com"])], "b": [_group("rt_1", "b", ["x.com"])]}
+        assert find_overlaps(grouped) == {}
+
+    def test_disabled_list_and_list_without_interface_conflict_with_nothing(self):
+        grouped = {"a": [_group("rt_0", "a", ["x.com"], "Wireguard0")],
+                   "off": [_group("rt_1", "off", ["x.com"], "Wireguard1", enabled=False)],
+                   "none": [_group("rt_2", "none", ["x.com"], "")]}
+        assert find_overlaps(grouped) == {}
+
+    def test_batches_of_one_list_are_one_list(self):
+        grouped = {"a": [_group("rt_0", "a", ["one.com"]), _group("rt_1", "a", ["one.com", "two.com"], batch=2)],
+                   "b": [_group("rt_2", "b", ["two.com"], "Wireguard1")]}
+        assert find_overlaps(grouped)["a"] == [{"list": "b", "domains": ["two.com"]}]
+
+    def test_subdomain_is_not_an_overlap(self):
+        grouped = {"a": [_group("rt_0", "a", ["x.com"], "Wireguard0")],
+                   "b": [_group("rt_1", "b", ["www.x.com"], "Wireguard1")]}
+        assert find_overlaps(grouped) == {}
+
+
+class TestRemoveDomains:
+    def test_manual_list_keeps_the_rest(self, manager, router):
+        router.add_group("rt_0", f"mine*Wireguard0*{TODAY}*1", ["keep.com", "drop.com"], "Wireguard0")
+        manager.remove_domains(manager.get_grouped_by_slug()["mine"], ["DROP.com"])
+        assert router.domains("rt_0") == ["keep.com"]
+
+    def test_unmanaged_group_is_edited_in_place(self, manager, router):
+        router.add_group("domain-list0", "Telegram", ["keep.com", "drop.com"], "Wireguard0")
+        manager.remove_domains(manager.get_grouped_by_slug()["Telegram"], ["drop.com"])
+        assert router.domains("domain-list0") == ["keep.com"]
+        assert router.groups["domain-list0"]["description"] == "Telegram"
+
+    def test_v2fly_list_is_refused(self, manager, router):
+        router.add_group("rt_0", f"v2fly:yt*Wireguard0*{TODAY}*1", ["a.com", "b.com"], "Wireguard0")
+        with pytest.raises(ValueError):
+            manager.remove_domains(manager.get_grouped_by_slug()["yt"], ["a.com"])
+        assert router.posts == []
+
+    def test_list_is_not_left_empty(self, manager, router):
+        router.add_group("rt_0", f"mine*Wireguard0*{TODAY}*1", ["a.com"], "Wireguard0")
+        with pytest.raises(ValueError):
+            manager.remove_domains(manager.get_grouped_by_slug()["mine"], ["a.com"])
+        assert router.domains("rt_0") == ["a.com"]
+
+
+class TestUpdateCheck:
+    URL = "http://router"
+
+    @pytest.fixture
+    def upstream(self, monkeypatch):
+        """What v2fly serves, and how many times it was asked."""
+        state = {"lists": {"yt": ["a.com", "b.com"]}, "downloads": 0}
+
+        def fetch(slug):
+            state["downloads"] += 1
+            if slug not in state["lists"]:
+                raise ValueError("unreachable")
+            return list(state["lists"][slug]), 0
+        monkeypatch.setattr(v2fly, "fetch_domain_list", fetch)
+        return state
+
+    def reload_from_disk(self, monkeypatch):
+        monkeypatch.setattr(v2fly, "_snapshots", None)
+
+    def test_old_sync_date_alone_is_not_an_update(self, upstream):
+        v2fly.refresh_lists(["yt"])
+        assert v2fly.pending_update(self.URL, "yt", ["a.com", "b.com"]) is None
+
+    def test_changed_list_is_an_update_with_its_difference(self, upstream):
+        v2fly.refresh_lists(["yt"])
+        assert v2fly.pending_update(self.URL, "yt", ["a.com", "old.com"]) == (["b.com"], ["old.com"])
+
+    def test_order_and_case_do_not_matter(self, upstream):
+        v2fly.refresh_lists(["yt"])
+        assert v2fly.pending_update(self.URL, "yt", ["B.com", "a.com"]) is None
+
+    def test_no_snapshot_reports_nothing(self, upstream):
+        assert v2fly.pending_update(self.URL, "yt", ["a.com"]) is None
+
+    def test_checked_once_a_day_even_across_restarts(self, upstream, monkeypatch):
+        now = 1_000_000.0
+        assert v2fly.lists_to_check(["yt"], now=now) == ["yt"]
+        assert v2fly.refresh_lists(["yt"], now=now)
+        self.reload_from_disk(monkeypatch)
+        assert v2fly.lists_to_check(["yt"], now=now + v2fly.CHECK_INTERVAL - 1) == []
+        assert v2fly.lists_to_check(["yt"], now=now + v2fly.CHECK_INTERVAL) == ["yt"]
+
+    def test_failed_download_keeps_snapshot_and_waits_before_retrying(self, upstream):
+        now = 1_000_000.0
+        v2fly.refresh_lists(["yt"], now=now)
+        del upstream["lists"]["yt"]
+        later = now + v2fly.CHECK_INTERVAL
+        assert v2fly.refresh_lists(["yt"], now=later) is False
+        assert v2fly.lists_to_check(["yt"], now=later + 1) == []
+        assert v2fly.lists_to_check(["yt"], now=later + v2fly.RETRY_INTERVAL) == ["yt"]
+        assert v2fly.pending_update(self.URL, "yt", ["old.com"]) == (["a.com", "b.com"], ["old.com"])
+
+    def test_unreadable_snapshot_file_means_check_again(self, upstream, monkeypatch):
+        v2fly.refresh_lists(["yt"])
+        with open(v2fly._snapshots_path(), "w") as fp:
+            fp.write("not json")
+        self.reload_from_disk(monkeypatch)
+        assert v2fly.lists_to_check(["yt"]) == ["yt"]
+
+    def test_sync_clears_the_update(self, upstream, manager, router):
+        manager.sync_list("yt", "Wireguard0", create=True)
+        upstream["lists"]["yt"] = ["a.com", "b.com", "new.com"]
+        v2fly.refresh_lists(["yt"])
+        held = router.domains("rt_0")
+        assert v2fly.pending_update(router.base_url, "yt", held) == (["new.com"], [])
+        manager.sync_list("yt", "Wireguard0")
+        assert v2fly.pending_update(router.base_url, "yt", router.domains("rt_0")) is None
+
+    def test_domain_refused_by_router_is_not_an_endless_update(self, upstream, manager, router):
+        upstream["lists"]["yt"] = ["a.com", "bad domain!!"]
+        manager.sync_list("yt", "Wireguard0", create=True)
+        assert router.domains("rt_0") == ["a.com"]
+        assert v2fly.pending_update(router.base_url, "yt", router.domains("rt_0")) is None
+        # ...but the next real change is still noticed
+        upstream["lists"]["yt"] = ["a.com", "bad domain!!", "new.com"]
+        v2fly.refresh_lists(["yt"])
+        added, removed = v2fly.pending_update(router.base_url, "yt", router.domains("rt_0"))
+        assert "new.com" in added and removed == []
+
+    def test_failed_sync_does_not_count_as_synced(self, upstream, manager, router):
+        router.fail_post_number = 1
+        with pytest.raises(Exception):
+            manager.sync_list("yt", "Wireguard0", create=True)
+        v2fly.refresh_lists(["yt"])
+        assert v2fly.pending_update(router.base_url, "yt", ["a.com"]) == (["b.com"], [])
+
+    def test_sync_on_one_router_says_nothing_about_another(self, upstream, manager, router):
+        upstream["lists"]["yt"] = ["a.com", "bad domain!!"]
+        manager.sync_list("yt", "Wireguard0", create=True)
+        assert v2fly.pending_update("http://other", "yt", ["a.com"]) == (["bad domain!!"], [])

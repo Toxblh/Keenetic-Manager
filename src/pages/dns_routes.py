@@ -9,9 +9,11 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 from gi.repository import Gtk, Adw, GLib
 
-from .keenetic_dns import DnsRoutesManager, DnsRouteGroup
-from .v2fly import search_lists, get_available_lists
+from .keenetic_dns import DnsRoutesManager, DnsRouteGroup, find_overlaps
+from .v2fly import search_lists, get_available_lists, lists_to_check, refresh_lists, pending_update
 from .utils import clear_container
+
+UPDATE_CHECK_TICK = 60 * 60  # seconds; each list is still downloaded only once a day
 
 
 def show_dns_routes(self):
@@ -22,7 +24,15 @@ def show_dns_routes(self):
     self._dns_manager = None
     self._dns_grouped = None
     self._dns_interfaces = None
+    self._dns_statuses = {}
     self._dns_router_url = self.current_router.base_url if self.current_router else None
+
+    # The window may stay open for days: keep looking for list updates
+    if not getattr(self, '_dns_update_timer', None):
+        def tick():
+            _check_list_updates(self)
+            return True
+        self._dns_update_timer = GLib.timeout_add_seconds(UPDATE_CHECK_TICK, tick)
 
     if not self.current_router:
         label = Gtk.Label(label=_("Please select a router."))
@@ -71,6 +81,7 @@ def _start_load(self, get_manager, messages=None):
         self._dns_manager = manager
         self._dns_grouped = grouped
         self._dns_interfaces = interfaces
+        self._dns_statuses = statuses
         overlay = getattr(self, '_dns_toast_overlay', None)
         if overlay:
             overlay.dismiss_all()  # the loading toast and anything about the old state
@@ -78,6 +89,7 @@ def _start_load(self, get_manager, messages=None):
         _show_status_toasts(self, statuses, interfaces)
         for msg in messages:
             _show_toast(self, msg, timeout=8)
+        _check_list_updates(self)
         return False
 
     def fail(msg):
@@ -93,6 +105,36 @@ def _start_load(self, get_manager, messages=None):
             _show_toast(self, m, timeout=8)
         _show_toast(self, _("Error: {msg}").format(msg=msg), timeout=8)
         return False
+
+    threading.Thread(target=work, daemon=True).start()
+
+
+def _check_list_updates(self):
+    """Download the v2fly lists of this page that were not checked today, in the
+    background, and show the result. One check at a time: when one ends, it looks
+    again in case the page has moved on to another router with lists of its own."""
+    grouped = getattr(self, '_dns_grouped', None)
+    if not grouped or getattr(self, '_dns_update_check_running', False):
+        return
+    slugs = sorted({groups[0].slug for groups in grouped.values() if groups and groups[0].source == "v2fly"})
+    stale = lists_to_check(slugs)
+    if not stale:
+        return
+    self._dns_update_check_running = True
+
+    def finish(changed):
+        self._dns_update_check_running = False
+        if changed:
+            _refresh_dns_routes(self)
+        _check_list_updates(self)
+        return False
+
+    def work():
+        changed = False
+        try:
+            changed = refresh_lists(stale)
+        finally:
+            GLib.idle_add(finish, changed)
 
     threading.Thread(target=work, daemon=True).start()
 
@@ -138,7 +180,7 @@ def _refresh_dns_routes(self):
     grouped = getattr(self, '_dns_grouped', None)
     interfaces = getattr(self, '_dns_interfaces', None)
     if manager is not None and grouped is not None and interfaces is not None:
-        _render(self, manager, grouped, interfaces, {})
+        _render(self, manager, grouped, interfaces, getattr(self, '_dns_statuses', {}))
 
 
 def _reload_dns_routes(self, messages=None):
@@ -320,10 +362,17 @@ def _render(self, manager: DnsRoutesManager, grouped: dict, interfaces: list[dic
     list_box.add_css_class("rich-list")
     list_box.connect("row-activated", lambda lb, row: _on_row_activated(self, manager, row, interfaces))
 
+    overlaps = find_overlaps(grouped)
+
     for slug, groups in sorted(grouped.items()):
         if not groups:
             continue
-        row = _create_group_row(self, manager, slug, groups, interfaces, statuses)
+        update = None
+        if groups[0].source == "v2fly":
+            update = pending_update(manager.router.base_url, groups[0].slug,
+                                    [d for g in groups for d in g.domains])
+        row = _create_group_row(self, manager, slug, groups, interfaces, statuses, update,
+                                overlaps.get(slug), grouped)
         list_box.append(row)
 
     scrolled.set_child(list_box)
@@ -337,7 +386,8 @@ def _on_row_activated(self, manager, row, interfaces):
         _show_edit_dialog(self, manager, slug, groups, interfaces)
 
 
-def _create_group_row(self, manager, slug, groups, interfaces, statuses=None):
+def _create_group_row(self, manager, slug, groups, interfaces, statuses=None, update=None,
+                      overlaps=None, grouped=None):
     primary = groups[0]
     batch_count = len(groups)
     total_domains = sum(len(g.domains) for g in groups)
@@ -405,14 +455,24 @@ def _create_group_row(self, manager, slug, groups, interfaces, statuses=None):
     is_managed = DnsRouteGroup.is_managed(primary.description)
     if primary.source == "v2fly":
         status_text += f"  <small><span foreground='#5b9bd5'>v2fly</span></small>"
-        if primary.is_outdated:
-            status_text += f"  <span foreground='orange'>⚠ {_('update available')}</span>"
+        if update:
+            status_text += (f"  <span foreground='orange'>⚠ {_('update available')}"
+                            f" (+{len(update[0])} −{len(update[1])})</span>")
     elif is_managed:
         status_text += f"  <small><span foreground='gray'>· {_('manual')}</span></small>"
     else:
         status_text += f"  <small><span foreground='gray'>· {_('manual')}</span></small>"
     subtitle.set_markup(f"<small>{status_text}</small>")
     name_box.append(subtitle)
+
+    if overlaps:
+        common = {d for overlap in overlaps for d in overlap["domains"]}
+        overlap_label = Gtk.Label(xalign=0, wrap=True)
+        overlap_label.add_css_class("warning")
+        overlap_label.add_css_class("caption")
+        overlap_label.set_text(_("⚠ {n} domain(s) also go through another tunnel in: {lists}").format(
+            n=len(common), lists=", ".join(overlap["list"] for overlap in overlaps)))
+        name_box.append(overlap_label)
     hbox.append(name_box)
 
     iface_label = Gtk.Label()
@@ -433,6 +493,16 @@ def _create_group_row(self, manager, slug, groups, interfaces, statuses=None):
     # Show edit/delete/toggle for ALL groups (managed or not)
     # Managed groups have extra features (sync, auto-repair)
     is_managed = DnsRouteGroup.is_managed(primary.description)
+
+    if overlaps:
+        overlap_btn = Gtk.Button()
+        overlap_btn.set_icon_name("dialog-warning-symbolic")
+        overlap_btn.set_tooltip_text(_("Show overlapping domains"))
+        overlap_btn.set_has_frame(False)
+        overlap_btn.add_css_class("warning")
+        overlap_btn.connect("clicked", lambda _b: _show_overlaps_dialog(
+            self, manager, slug, grouped, interfaces, overlaps))
+        hbox.append(overlap_btn)
 
     edit_btn = Gtk.Button()
     edit_btn.set_icon_name("document-edit-symbolic")
@@ -797,8 +867,99 @@ def _show_edit_dialog(self, manager, slug, groups, interfaces):
     btn_box.append(save_btn)
 
     dialog.show()
-    # Focus on iface combo, not name entry
-    GLib.idle_add(lambda: iface_combo.grab_focus())
+    # Focus on iface combo, not name entry. Only once: grab_focus() returns True,
+    # which would keep this idle callback running and pull the focus out of the
+    # name and domain fields as soon as they get it.
+    GLib.idle_add(lambda: iface_combo.grab_focus() and False)
+
+
+def _show_overlaps_dialog(self, manager, slug, grouped, interfaces, overlaps):
+    """Show which domains of a list go through another tunnel in other lists, with
+    the ways to resolve each overlap as buttons."""
+    groups = grouped[slug]
+
+    dialog = Adw.Window(transient_for=self, modal=True)
+    dialog.set_title(_("Overlapping domains: {slug}").format(slug=slug))
+    dialog.set_default_size(540, 520)
+
+    content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+    content.set_margin_start(20)
+    content.set_margin_end(20)
+    content.set_margin_top(20)
+    content.set_margin_bottom(20)
+    dialog.set_content(content)
+
+    intro = Gtk.Label(xalign=0, wrap=True)
+    intro.set_text(_(
+        "These domains are in lists routed through different tunnels, so you cannot "
+        "tell which tunnel they will take. Route both lists through one tunnel, or "
+        "remove the domains from one of the lists. Domains can only be removed from a "
+        "manual list: a v2fly list gets them back on every sync. Turning one of the "
+        "lists off also ends the overlap."))
+    content.append(intro)
+
+    def action_button(label, op):
+        button = Gtk.Button(label=label)
+        button.set_halign(Gtk.Align.START)
+
+        def on_clicked(_button):
+            if _run_op(self, manager, op):
+                dialog.close()
+        button.connect("clicked", on_clicked)
+        return button
+
+    cards = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+    for overlap in overlaps:
+        other = overlap["list"]
+        other_groups = grouped[other]
+        domains = overlap["domains"]
+        iface = groups[0].interface
+        other_iface = other_groups[0].interface
+
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        heading = Gtk.Label(xalign=0, wrap=True)
+        heading.set_markup("<b>{}</b>".format(GLib.markup_escape_text(
+            _("'{list}' goes through {iface}, common domains: {n}").format(
+                list=other, iface=_iface_display(other_iface, interfaces), n=len(domains)))))
+        card.append(heading)
+
+        domains_label = Gtk.Label(label="\n".join(domains), xalign=0, yalign=0, selectable=True)
+        domains_scroll = Gtk.ScrolledWindow()
+        domains_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        domains_scroll.set_max_content_height(110)
+        domains_scroll.set_propagate_natural_height(True)
+        domains_scroll.set_child(domains_label)
+        card.append(domains_scroll)
+
+        for name, members, target in ((slug, groups, other_iface), (other, other_groups, iface)):
+            names = [g.name for g in members]
+            card.append(action_button(
+                _("Route '{list}' through {iface}").format(list=name, iface=_iface_display(target, interfaces)),
+                lambda progress, n=names, t=target: manager.set_list_interface(n, t)))
+
+        common = set(domains)
+        for name, members in ((slug, groups), (other, other_groups)):
+            if members[0].source == "v2fly":
+                continue
+            own = {d.strip().lower() for g in members for d in g.domains}
+            if own - common:  # a list cannot be left empty
+                card.append(action_button(
+                    _("Remove these domains from '{list}'").format(list=name),
+                    lambda progress, m=members, d=domains: manager.remove_domains(m, d)))
+        cards.append(card)
+
+    scrolled = Gtk.ScrolledWindow()
+    scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+    scrolled.set_vexpand(True)
+    scrolled.set_child(cards)
+    content.append(scrolled)
+
+    close_btn = Gtk.Button(label=_("Close"))
+    close_btn.set_halign(Gtk.Align.END)
+    close_btn.connect("clicked", lambda b: dialog.close())
+    content.append(close_btn)
+
+    dialog.show()
 
 
 def _sync_all(self, manager, grouped, interfaces):

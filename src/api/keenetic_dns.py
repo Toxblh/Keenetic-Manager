@@ -77,15 +77,6 @@ class DnsRouteGroup:
     def managed(self) -> bool:
         return DnsRouteGroup.is_managed(self.description)
 
-    @property
-    def is_outdated(self) -> bool:
-        """Check if the sync date is older than yesterday."""
-        if not self.date or len(self.date) != 6:
-            return True
-        # Consider outdated if date is not today
-        today = datetime.now().strftime("%d%m%y")
-        return self.date != today
-
     def encode_description(self) -> str:
         """Encode metadata into description string.
         v2fly lists: v2fly:{slug}*{iface}*{date}*{batch}
@@ -179,6 +170,34 @@ def _route_del(group: str, interface: str) -> dict:
 
 def _group_obj(group: str, data: dict) -> dict:
     return {"object-group": {"fqdn": {group: data}}}
+
+
+def find_overlaps(grouped: dict[str, list[DnsRouteGroup]]) -> dict[str, list[dict]]:
+    """Find domains that two lists send through different tunnels.
+    `grouped` is {row label: batches}. Returns {label: [{"list": other label,
+    "domains": [...]}, ...]}, with an entry on both sides of each overlap.
+
+    Only identical domains count. A list that is switched off routes nothing, so it
+    conflicts with nothing, and neither does one with no interface. A subdomain in
+    another list is not reported: that is how a single host is carved out of a list."""
+    owners: dict[str, list[tuple[str, str]]] = {}
+    for label, groups in grouped.items():
+        if not groups or not groups[0].interface or not any(g.enabled for g in groups):
+            continue
+        for domain in {d.strip().lower() for g in groups for d in g.domains if d.strip()}:
+            owners.setdefault(domain, []).append((label, groups[0].interface))
+
+    pairs: dict[tuple[str, str], list[str]] = {}
+    for domain, lists in owners.items():
+        for label, interface in lists:
+            for other, other_interface in lists:
+                if interface != other_interface:
+                    pairs.setdefault((label, other), []).append(domain)
+
+    result: dict[str, list[dict]] = {}
+    for (label, other), domains in sorted(pairs.items()):
+        result.setdefault(label, []).append({"list": other, "domains": sorted(domains)})
+    return result
 
 
 class DnsRoutesManager:
@@ -823,13 +842,31 @@ class DnsRoutesManager:
                 self.update_group_interface(name, interface, save=False)
             self._save()
 
+    def remove_domains(self, groups: list[DnsRouteGroup], domains: list[str]):
+        """Remove domains from a list given as its batches.
+        A v2fly list is refused, as its next sync would bring them back, and so is
+        removing everything, which is what deleting the list is for."""
+        primary = groups[0]
+        if primary.source == "v2fly":
+            raise ValueError(_("A v2fly list gets its domains back on every sync."))
+        gone = {d.strip().lower() for d in domains}
+        keep = [d for g in groups for d in g.domains if d.strip().lower() not in gone]
+        if not keep:
+            raise ValueError(_("Domain list is empty."))
+        if primary.managed:
+            self.apply_list("manual", primary.slug, keep, primary.interface)
+        else:
+            self.edit_group(primary.name, domains=keep)
+
     def sync_list(self, slug: str, interface: str, create: bool = False) -> list[str]:
         """Sync a v2fly domain list: download, compare, update only what changed.
         Raises without touching the router if the download fails or is empty.
         With `create` the list must not be on the router yet.
         Returns list of group names."""
-        from .v2fly import fetch_domain_list
+        from .v2fly import fetch_domain_list, remember_synced
 
         # Download outside the lock: it does not touch the router
         domains, _total = fetch_domain_list(slug)
-        return self.apply_list("v2fly", slug, domains, interface, create=create)
+        result = self.apply_list("v2fly", slug, domains, interface, create=create)
+        remember_synced(self.router.base_url, slug, domains)
+        return result

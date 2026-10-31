@@ -4,9 +4,11 @@ Fetches available domain lists from v2fly/domain-list-community and downloads do
 Uses jsDelivr CDN API for listing (no rate limit) with bundled fallback.
 """
 
+import hashlib
 import json
 import os
 import re
+import threading
 import time
 import urllib.request
 import urllib.error
@@ -25,6 +27,9 @@ _BUNDLED_LIST_PATH = os.path.join(os.path.dirname(__file__), "v2fly_list.json")
 _list_names_cache: Optional[list[str]] = None
 _list_names_cache_time: float = 0
 CACHE_TTL = 24 * 60 * 60  # 24 hours
+
+CHECK_INTERVAL = 24 * 60 * 60  # how often a list is compared with v2fly
+RETRY_INTERVAL = 60 * 60       # how soon a failed download is tried again
 
 
 def _load_bundled_list() -> list[str]:
@@ -205,35 +210,129 @@ def _fetch_raw(slug: str) -> tuple[str, str]:
     raise ValueError(f"Failed to fetch '{slug}': {last_err}")
 
 
-def check_list_updated(slug: str, stored_date: str) -> bool:
-    """Check if a v2fly list has been updated since the stored date.
-    stored_date format: DDMMYY (e.g. '240726').
-    Returns True if an update is needed (list is newer than stored date)."""
-    import datetime
+# --- Update check ---
+#
+# A list has an update when what v2fly serves differs from what the router holds.
+# Downloaded lists are kept on disk, so this is asked of v2fly once a day however
+# often the app is restarted.
+#
+# The router refuses some addresses, so after a sync it can hold fewer domains than
+# the list has, and comparing the two would report an update forever. The version
+# last synced to each router is remembered too: that version is never an update.
 
-    if not stored_date or len(stored_date) != 6:
-        return True  # No date stored, needs update
+_snapshots: Optional[dict] = None           # {"lists": {slug: {"checked", "domains"}},
+                                            #  "synced": {router_url: {slug: fingerprint}}}
+_snapshots_lock = threading.RLock()
+_failed_at: dict[str, float] = {}           # slug -> time of the last failed download
 
+
+def _snapshots_path() -> str:
+    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
+    return os.path.join(base, "keenetic-manager", "v2fly_snapshots.json")
+
+
+def _state() -> dict:
+    """The snapshots, read from disk on first use. Call with the lock held.
+    An unreadable file only means the lists get checked again."""
+    global _snapshots
+    if _snapshots is None:
+        try:
+            with open(_snapshots_path()) as fp:
+                data = json.load(fp)
+        except (OSError, ValueError):
+            data = {}
+        if not isinstance(data, dict):
+            data = {}
+        lists = data.get("lists")
+        synced = data.get("synced")
+        _snapshots = {
+            "lists": {slug: entry for slug, entry in lists.items() if isinstance(entry, dict)}
+                     if isinstance(lists, dict) else {},
+            "synced": {url: seen for url, seen in synced.items() if isinstance(seen, dict)}
+                      if isinstance(synced, dict) else {},
+        }
+    return _snapshots
+
+
+def _save_state():
+    """Write the snapshots to disk. Call with the lock held. A failure costs one extra check."""
+    path = _snapshots_path()
     try:
-        stored = datetime.datetime.strptime(stored_date, "%d%m%y")
-    except ValueError:
-        return True
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = f"{path}.tmp"
+        with open(tmp, "w") as fp:
+            json.dump(_state(), fp)
+        os.replace(tmp, path)
+    except OSError as e:
+        print(f"[v2fly] Failed to save snapshots: {e}")
 
-    # Check GitHub API for last commit date of the file
-    api_url = f"https://api.github.com/repos/v2fly/domain-list-community/commits?path=data/{slug}&per_page=1"
-    try:
-        req = urllib.request.Request(api_url, headers={"Accept": "application/vnd.github+json", "User-Agent": "Keenetic-Manager/1.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            import json
-            commits = json.loads(resp.read().decode())
-            if commits and len(commits) > 0:
-                commit_date_str = commits[0]["commit"]["committer"]["date"]
-                commit_date = datetime.datetime.strptime(
-                    commit_date_str[:10], "%Y-%m-%d"
-                )
-                return commit_date.date() > stored.date()
-    except Exception as e:
-        print(f"[v2fly] Failed to check updates for {slug}: {e}")
-        return False  # Can't determine, assume no update needed
 
-    return False
+def _normalized(domains) -> set[str]:
+    return {d.strip().lower() for d in domains if d and d.strip()}
+
+
+def _fingerprint(domains) -> str:
+    return hashlib.sha256("\n".join(sorted(_normalized(domains))).encode()).hexdigest()
+
+
+def lists_to_check(slugs, now: float = None) -> list[str]:
+    """The lists whose snapshot is older than a day, leaving out those whose
+    download failed within the last hour."""
+    now = time.time() if now is None else now
+    result = []
+    with _snapshots_lock:
+        lists = _state()["lists"]
+        for slug in slugs:
+            checked = lists.get(slug, {}).get("checked", 0)
+            if 0 <= now - checked < CHECK_INTERVAL:
+                continue
+            if 0 <= now - _failed_at.get(slug, -RETRY_INTERVAL) < RETRY_INTERVAL:
+                continue
+            result.append(slug)
+    return result
+
+
+def refresh_lists(slugs, now: float = None) -> bool:
+    """Download the lists and keep them as snapshots. A list that fails keeps its old
+    snapshot. Returns True if any list was downloaded. Blocks: run it off the main thread."""
+    now = time.time() if now is None else now
+    fetched = {}
+    for slug in slugs:
+        try:
+            domains, _total = fetch_domain_list(slug)
+        except Exception as e:
+            print(f"[v2fly] Update check failed for {slug}: {e}")
+            _failed_at[slug] = now
+            continue
+        fetched[slug] = {"checked": now, "domains": domains}
+    if not fetched:
+        return False
+    with _snapshots_lock:
+        _state()["lists"].update(fetched)
+        _save_state()
+    return True
+
+
+def remember_synced(router_url: str, slug: str, domains: list[str]):
+    """Record that the router was given this version of the list."""
+    with _snapshots_lock:
+        state = _state()
+        state["lists"][slug] = {"checked": time.time(), "domains": domains}
+        state["synced"].setdefault(router_url, {})[slug] = _fingerprint(domains)
+        _save_state()
+
+
+def pending_update(router_url: str, slug: str, router_domains) -> Optional[tuple[list[str], list[str]]]:
+    """What a sync would change, as (added, removed), or None if there is no update.
+    Nothing is reported for a list that has no snapshot yet."""
+    with _snapshots_lock:
+        state = _state()
+        remote = state["lists"].get(slug, {}).get("domains")
+        synced = state["synced"].get(router_url, {}).get(slug)
+    if not remote:
+        return None
+    remote_set = _normalized(remote)
+    current = _normalized(router_domains)
+    if remote_set == current or _fingerprint(remote_set) == synced:
+        return None
+    return sorted(remote_set - current), sorted(current - remote_set)
