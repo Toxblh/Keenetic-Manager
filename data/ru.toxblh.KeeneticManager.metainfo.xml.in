@@ -58,6 +58,17 @@
     </screenshots>
 
     <releases>
+        <release version="0.6.1" date="2026-10-31">
+            <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.6.1</url>
+            <description translate="no">
+                <p>DNS routes improvements</p>
+                <ul>
+                    <li>Fixed editing of manual lists: the name and domain fields could not be typed in</li>
+                    <li>Update available is now shown only when a v2fly list really differs from the one on the router, checked once a day</li>
+                    <li>New warning when lists send the same domain through different tunnels, with the common domains and ways to resolve it</li>
+                </ul>
+            </description>
+        </release>
         <release version="0.6.0" date="2026-10-12">
             <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.6.0</url>
             <description translate="no">
