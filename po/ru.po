@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-31 17:20+0300\n"
+"POT-Creation-Date: 2026-11-08 18:04+0300\n"
 "PO-Revision-Date: 2026-02-02 01:37+0300\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -15,8 +15,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Poedit 3.8\n"
 
 #: data/ru.toxblh.KeeneticManager.desktop.in:2
@@ -53,51 +52,60 @@ msgstr "Основной UI"
 msgid "Login"
 msgstr "Логин"
 
-#: src/api/keenetic_dns.py:132
+#: src/api/keenetic_dns.py:152
 msgid "List name is empty."
 msgstr "Имя списка пустое."
 
-#: src/api/keenetic_dns.py:134
+#: src/api/keenetic_dns.py:154
 msgid "List name must not contain '*' or control characters."
 msgstr "Имя списка не должно содержать «*» и управляющие символы."
 
 #. The prefix is how a description marks a downloaded list
-#: src/api/keenetic_dns.py:137
+#: src/api/keenetic_dns.py:157
 msgid "List name must not start with 'v2fly:'."
 msgstr "Имя списка не должно начинаться с «v2fly:»."
 
-#: src/api/keenetic_dns.py:592
+#: src/api/keenetic_dns.py:159
+msgid "List name must not start with 'geo:'."
+msgstr "Имя списка не должно начинаться с «geo:»."
+
+#: src/api/keenetic_dns.py:614
 #, python-brace-format
 msgid "No route found for {group}."
 msgstr "Маршрут для {group} не найден."
 
-#: src/api/keenetic_dns.py:628 src/api/keenetic_dns.py:739
-#: src/api/keenetic_dns.py:761 src/api/keenetic_dns.py:855
+#: src/api/keenetic_dns.py:650 src/api/keenetic_dns.py:761
+#: src/api/keenetic_dns.py:783 src/api/keenetic_dns.py:879
 msgid "Domain list is empty."
 msgstr "Список доменов пуст."
 
-#: src/api/keenetic_dns.py:630 src/api/keenetic_dns.py:664
+#: src/api/keenetic_dns.py:652 src/api/keenetic_dns.py:686
 #, python-brace-format
 msgid "Too many domains ({n}), the limit is {limit}."
 msgstr "Слишком много доменов ({n}), лимит — {limit}."
 
-#: src/api/keenetic_dns.py:671 src/api/keenetic_dns.py:694
+#: src/api/keenetic_dns.py:693 src/api/keenetic_dns.py:716
 #, python-brace-format
 msgid "Group {group} not found."
 msgstr "Группа {group} не найдена."
 
-#: src/api/keenetic_dns.py:763
+#: src/api/keenetic_dns.py:785
 msgid "No interface selected."
 msgstr "Интерфейс не выбран."
 
-#: src/api/keenetic_dns.py:776
+#: src/api/keenetic_dns.py:798
 #, python-brace-format
 msgid "A list named '{name}' already exists."
 msgstr "Список с именем «{name}» уже существует."
 
-#: src/api/keenetic_dns.py:851
+#: src/api/keenetic_dns.py:873
 msgid "A v2fly list gets its domains back on every sync."
 msgstr "Список v2fly получает свои домены обратно при каждой синхронизации."
+
+#: src/api/keenetic_dns.py:875
+msgid "A downloaded list gets its domains back on every sync."
+msgstr ""
+"Скачанный список получает свои домены обратно при каждой синхронизации."
 
 #: src/config.py:16
 #, python-brace-format
@@ -121,22 +129,23 @@ msgstr "Сброс"
 msgid "Clear search field"
 msgstr "Очистить поиск"
 
-#: src/pages/clients.py:66 src/pages/dns_routes.py:38 src/pages/vpn.py:28
+#: src/pages/clients.py:66 src/pages/dns_routes.py:39 src/pages/vpn.py:28
 #: src/pages/wg_server.py:12
 msgid "Please select a router."
 msgstr "Пожалуйста, выберите роутер."
 
 #. Show loading toast
-#: src/pages/dns_routes.py:49
+#: src/pages/dns_routes.py:50
 msgid "Loading DNS routes..."
 msgstr "Загрузка DNS-маршрутов..."
 
-#: src/pages/dns_routes.py:106 src/pages/dns_routes.py:245
+#: src/pages/dns_routes.py:107 src/pages/dns_routes.py:251
+#: src/pages/dns_routes.py:877
 #, python-brace-format
 msgid "Error: {msg}"
 msgstr "Ошибка: {msg}"
 
-#: src/pages/dns_routes.py:147
+#: src/pages/dns_routes.py:153
 #, python-brace-format
 msgid ""
 "Could not load DNS routes from the router.\n"
@@ -145,69 +154,69 @@ msgstr ""
 "Не удалось загрузить DNS-маршруты с роутера.\n"
 "{msg}"
 
-#: src/pages/dns_routes.py:151
+#: src/pages/dns_routes.py:157
 msgid "Retry"
 msgstr "Повторить"
 
-#: src/pages/dns_routes.py:163
+#: src/pages/dns_routes.py:169
 #, python-brace-format
 msgid "✓ repaired → {name}"
 msgstr "✓ исправлен → {name}"
 
-#: src/pages/dns_routes.py:167
+#: src/pages/dns_routes.py:173
 #, python-brace-format
 msgid "✓ repaired → {name} ({count})"
 msgstr "✓ исправлен → {name} ({count})"
 
-#: src/pages/dns_routes.py:169 src/pages/dns_routes.py:428
+#: src/pages/dns_routes.py:175 src/pages/dns_routes.py:438
 #, python-brace-format
 msgid "cleaned {n} dups"
 msgstr "убрано {n} дублей"
 
-#: src/pages/dns_routes.py:172
+#: src/pages/dns_routes.py:178
 #, python-brace-format
 msgid "✓ updated {old} → {new}"
 msgstr "✓ обновлён {old} → {new}"
 
-#: src/pages/dns_routes.py:208
+#: src/pages/dns_routes.py:214
 msgid "Another operation is still running."
 msgstr "Предыдущая операция ещё выполняется."
 
-#: src/pages/dns_routes.py:242
+#: src/pages/dns_routes.py:248
 #, python-brace-format
 msgid "Router rejected {n} address(es): {first}"
 msgstr "Роутер отклонил адресов: {n}. Первый: {first}"
 
-#: src/pages/dns_routes.py:306
+#: src/pages/dns_routes.py:312
 msgid "DNS Routes"
 msgstr "DNS-маршруты"
 
-#: src/pages/dns_routes.py:311
+#: src/pages/dns_routes.py:317
 msgid "Sync All"
 msgstr "Синхр. всё"
 
-#: src/pages/dns_routes.py:313
-msgid "Update all domain lists from v2fly"
-msgstr "Обновить все доменные списки из v2fly"
+#: src/pages/dns_routes.py:319
+msgid "Update all downloaded lists (v2fly, geosite/geoip)"
+msgstr "Обновить все скачанные списки (v2fly, geosite/geoip)"
 
-#: src/pages/dns_routes.py:317
+#: src/pages/dns_routes.py:323
 msgid "Add List"
 msgstr "Добавить"
 
-#: src/pages/dns_routes.py:319
-msgid "Add a new domain list from v2fly"
-msgstr "Добавить новый доменный список из v2fly"
+#: src/pages/dns_routes.py:325
+msgid "Add a domain list from v2fly, geosite/geoip or by hand"
+msgstr "Добавить доменный список из v2fly, geosite/geoip или вручную"
 
 #. Mass replace button
-#: src/pages/dns_routes.py:324
+#: src/pages/dns_routes.py:330
 msgid "Replace All"
 msgstr "Заменить всё"
 
-#: src/pages/dns_routes.py:326
+#: src/pages/dns_routes.py:332
 msgid "Replace one VPN interface with another for all routes"
 msgstr "Заменить один VPN-интерфейс другим для всех маршрутов"
 
-#: src/pages/dns_routes.py:354
+#: src/pages/dns_routes.py:360
 msgid ""
 "No DNS routes configured yet.\n"
 "Click 'Add List' to get started."
@@ -215,249 +224,317 @@ msgstr ""
 "DNS-маршруты не настроены.\n"
 "Нажмите «Добавить» чтобы начать."
 
-#: src/pages/dns_routes.py:437
+#: src/pages/dns_routes.py:447
 msgid "error"
 msgstr "ошибка"
 
-#: src/pages/dns_routes.py:439
+#: src/pages/dns_routes.py:449
 msgid "no route"
 msgstr "нет маршрута"
 
-#: src/pages/dns_routes.py:441
+#: src/pages/dns_routes.py:451
 msgid "batches"
 msgstr "батчей"
 
-#: src/pages/dns_routes.py:443
+#: src/pages/dns_routes.py:453
 msgid "disabled"
 msgstr "выкл"
 
-#: src/pages/dns_routes.py:454
+#: src/pages/dns_routes.py:464
 msgid "domains"
 msgstr "доменов"
 
-#: src/pages/dns_routes.py:454
+#: src/pages/dns_routes.py:464
 msgid "updated"
 msgstr "Обновить"
 
-#: src/pages/dns_routes.py:459
+#: src/pages/dns_routes.py:471
 msgid "update available"
 msgstr "доступно обновление"
 
-#: src/pages/dns_routes.py:462 src/pages/dns_routes.py:464
-#: src/pages/dns_routes.py:656
+#: src/pages/dns_routes.py:474 src/pages/dns_routes.py:476
+#: src/pages/dns_routes.py:672
 msgid "manual"
 msgstr "вручную"
 
-#: src/pages/dns_routes.py:473
+#: src/pages/dns_routes.py:485
 #, python-brace-format
 msgid "⚠ {n} domain(s) also go through another tunnel in: {lists}"
 msgstr ""
 "⚠ Доменов, которые также идут через другой туннель: {n}, списки: {lists}"
 
-#: src/pages/dns_routes.py:500
+#: src/pages/dns_routes.py:512
 msgid "Show overlapping domains"
 msgstr "Показать пересекающиеся домены"
 
-#: src/pages/dns_routes.py:509
+#: src/pages/dns_routes.py:521
 msgid "Edit list"
 msgstr "Редактировать роутер"
 
-#: src/pages/dns_routes.py:522
+#: src/pages/dns_routes.py:534
 msgid "Delete list"
 msgstr "Удалить роутер"
 
-#: src/pages/dns_routes.py:547
+#: src/pages/dns_routes.py:559
 #, python-brace-format
 msgid "Delete '{slug}'?"
 msgstr "Удалить '{slug}'?"
 
-#: src/pages/dns_routes.py:548
+#: src/pages/dns_routes.py:560
 #, python-brace-format
 msgid "This will remove all {n} batch(es) and their routing rules."
 msgstr "Будут удалены все {n} батч(ей) и их правила маршрутизации."
 
-#: src/pages/dns_routes.py:550 src/pages/dns_routes.py:681
-#: src/pages/dns_routes.py:815 src/pages/dns_routes.py:1060
+#: src/pages/dns_routes.py:562 src/pages/dns_routes.py:697
+#: src/pages/dns_routes.py:992 src/pages/dns_routes.py:1237
 #: src/widgets/dialogs.py:73
 msgid "Cancel"
 msgstr "Отмена"
 
-#: src/pages/dns_routes.py:551
+#: src/pages/dns_routes.py:563
 msgid "Delete"
 msgstr "Удалить"
 
-#: src/pages/dns_routes.py:569
+#: src/pages/dns_routes.py:581
 msgid "Add Domain List"
 msgstr "Добавить доменный список"
 
-#: src/pages/dns_routes.py:586
+#: src/pages/dns_routes.py:598
 msgid "Search v2fly domain list:"
 msgstr "Поиск v2fly списка:"
 
-#: src/pages/dns_routes.py:588
+#: src/pages/dns_routes.py:600
 msgid "Type to search (e.g. youtube, instagram)..."
 msgstr "Введите для поиска (например youtube, instagram)..."
 
-#: src/pages/dns_routes.py:615
+#: src/pages/dns_routes.py:627
 #, python-brace-format
 msgid "{n} results"
 msgstr "{n} результатов"
 
-#: src/pages/dns_routes.py:633
+#: src/pages/dns_routes.py:645
 #, python-brace-format
 msgid "Selected: {name}"
 msgstr "Выбрано: {name}"
 
-#: src/pages/dns_routes.py:637
+#: src/pages/dns_routes.py:649
 msgid "v2fly"
 msgstr "v2fly"
 
-#: src/pages/dns_routes.py:642 src/pages/dns_routes.py:769
+#: src/pages/dns_routes.py:653
+msgid "lists"
+msgstr "листы"
+
+#: src/pages/dns_routes.py:658 src/pages/dns_routes.py:946
 msgid "List name:"
 msgstr "Имя списка:"
 
-#: src/pages/dns_routes.py:644
+#: src/pages/dns_routes.py:660
 msgid "My custom list"
 msgstr "Мой список"
 
-#: src/pages/dns_routes.py:647 src/pages/dns_routes.py:774
+#: src/pages/dns_routes.py:663 src/pages/dns_routes.py:951
 msgid "Domains (one per line):"
 msgstr "Домены (по одному на строку):"
 
 #. Interface (shared)
-#: src/pages/dns_routes.py:666 src/pages/dns_routes.py:786
-#: src/pages/dns_routes.py:804
+#: src/pages/dns_routes.py:682 src/pages/dns_routes.py:963
+#: src/pages/dns_routes.py:981
 msgid "Route through:"
 msgstr "Маршрут через:"
 
-#: src/pages/dns_routes.py:685
+#: src/pages/dns_routes.py:701
 msgid "Add"
 msgstr "Добавить"
 
-#: src/pages/dns_routes.py:692
+#: src/pages/dns_routes.py:709
 msgid "Please select an interface."
 msgstr "Пожалуйста, выберите роутер."
 
-#: src/pages/dns_routes.py:699
+#: src/pages/dns_routes.py:715
+msgid "Please select at least one category."
+msgstr "Выберите хотя бы одну категорию."
+
+#: src/pages/dns_routes.py:724
 msgid "Please select a domain list."
 msgstr "Пожалуйста, выберите роутер."
 
-#: src/pages/dns_routes.py:710
+#: src/pages/dns_routes.py:735
 msgid "Please enter a list name."
 msgstr "Пожалуйста, выберите роутер."
 
-#: src/pages/dns_routes.py:714 src/pages/dns_routes.py:840
+#: src/pages/dns_routes.py:739 src/pages/dns_routes.py:1017
 msgid "Please enter at least one domain."
 msgstr "Введите хотя бы один домен."
 
-#: src/pages/dns_routes.py:739
+#: src/pages/dns_routes.py:764
 #, python-brace-format
 msgid "Creating '{name}'..."
 msgstr "Создание '{name}'..."
 
-#: src/pages/dns_routes.py:745
+#: src/pages/dns_routes.py:777
+msgid "Source:"
+msgstr "Источник:"
+
+#: src/pages/dns_routes.py:786
+msgid "Filter categories (e.g. youtube, telegram)..."
+msgstr "Фильтр категорий (например youtube, telegram)..."
+
+#: src/pages/dns_routes.py:806
+#, python-brace-format
+msgid "Selected: {n} categories, {entries} entries, {groups} groups"
+msgstr "Выбрано категорий: {n}, записей: {entries}, групп: {groups}"
+
+#: src/pages/dns_routes.py:809
+#, python-brace-format
+msgid "{n} categories"
+msgstr "Категорий: {n}"
+
+#: src/pages/dns_routes.py:822
+#, python-brace-format
+msgid "{n} domains"
+msgstr "доменов: {n}"
+
+#: src/pages/dns_routes.py:824
+#, python-brace-format
+msgid "{n} IP"
+msgstr "IP: {n}"
+
+#: src/pages/dns_routes.py:827
+msgid "too large for the router"
+msgstr "слишком большой для роутера"
+
+#: src/pages/dns_routes.py:829
+#, python-brace-format
+msgid "{n} group(s)"
+msgstr "групп: {n}"
+
+#: src/pages/dns_routes.py:850
+#, python-brace-format
+msgid "{n} more, refine the filter"
+msgstr "Ещё {n}, уточните фильтр"
+
+#: src/pages/dns_routes.py:864
+msgid "Loading categories..."
+msgstr "Загрузка категорий..."
+
+#: src/pages/dns_routes.py:907
+#, python-brace-format
+msgid "Adding ({n}/{total}): {slug}"
+msgstr "Добавление ({n}/{total}): {slug}"
+
+#: src/pages/dns_routes.py:914
+#, python-brace-format
+msgid "Adding failed for {lists}"
+msgstr "Не удалось добавить: {lists}"
+
+#: src/pages/dns_routes.py:916
+msgid "Downloading files..."
+msgstr "Загрузка файлов..."
+
+#: src/pages/dns_routes.py:922
 #, python-brace-format
 msgid "Downloading '{slug}'..."
 msgstr "Загрузка '{slug}'..."
 
-#: src/pages/dns_routes.py:756
+#: src/pages/dns_routes.py:933
 #, python-brace-format
 msgid "Edit '{slug}'"
 msgstr "Редактирование '{slug}'"
 
-#. v2fly: show domains read-only in a text view
-#: src/pages/dns_routes.py:789
+#. v2fly or geo: show domains read-only in a text view
+#: src/pages/dns_routes.py:966
 msgid "Domains (managed automatically):"
 msgstr "Домены (управляются автоматически):"
 
-#: src/pages/dns_routes.py:819 src/widgets/dialogs.py:77
+#: src/pages/dns_routes.py:996 src/widgets/dialogs.py:77
 msgid "Save"
 msgstr "Сохранить"
 
-#: src/pages/dns_routes.py:882
+#: src/pages/dns_routes.py:1059
 #, python-brace-format
 msgid "Overlapping domains: {slug}"
 msgstr "Пересекающиеся домены: {slug}"
 
-#: src/pages/dns_routes.py:894
+#: src/pages/dns_routes.py:1071
 msgid ""
 "These domains are in lists routed through different tunnels, so you cannot "
 "tell which tunnel they will take. Route both lists through one tunnel, or "
 "remove the domains from one of the lists. Domains can only be removed from a "
-"manual list: a v2fly list gets them back on every sync. Turning one of the "
-"lists off also ends the overlap."
+"manual list: a downloaded list gets them back on every sync. Turning one of "
+"the lists off also ends the overlap."
 msgstr ""
 "Эти домены есть в списках, которые идут через разные туннели, поэтому нельзя "
 "сказать, через какой туннель они пойдут. Пустите оба списка через один "
 "туннель или уберите домены из одного из списков. Убрать домены можно только "
-"из ручного списка: список v2fly получает их обратно при каждой "
+"из ручного списка: скачанный список получает их обратно при каждой "
 "синхронизации. Пересечение исчезнет и если выключить один из списков."
 
-#: src/pages/dns_routes.py:922
+#: src/pages/dns_routes.py:1099
 #, python-brace-format
 msgid "'{list}' goes through {iface}, common domains: {n}"
 msgstr "«{list}» идёт через {iface}, общих доменов: {n}"
 
-#: src/pages/dns_routes.py:937
+#: src/pages/dns_routes.py:1114
 #, python-brace-format
 msgid "Route '{list}' through {iface}"
 msgstr "Пустить «{list}» через {iface}"
 
-#: src/pages/dns_routes.py:947
+#: src/pages/dns_routes.py:1124
 #, python-brace-format
 msgid "Remove these domains from '{list}'"
 msgstr "Убрать эти домены из «{list}»"
 
-#: src/pages/dns_routes.py:957
+#: src/pages/dns_routes.py:1134
 msgid "Close"
 msgstr "Закрыть"
 
-#: src/pages/dns_routes.py:972
-msgid "No v2fly lists to sync"
-msgstr "Нет v2fly списков для синхронизации"
+#: src/pages/dns_routes.py:1149
+msgid "No downloaded lists to sync"
+msgstr "Нет скачанных списков для синхронизации"
 
-#: src/pages/dns_routes.py:983
+#: src/pages/dns_routes.py:1160
 #, python-brace-format
 msgid "{slug}: no interface"
 msgstr "{slug}: нет интерфейса"
 
-#: src/pages/dns_routes.py:985
+#: src/pages/dns_routes.py:1162
 #, python-brace-format
 msgid "Syncing ({n}/{total}): {slug}"
 msgstr "Синхронизация ({n}/{total}): {slug}"
 
-#: src/pages/dns_routes.py:993
+#: src/pages/dns_routes.py:1170
 #, python-brace-format
 msgid "Sync failed for {lists}"
 msgstr "Не удалось синхронизировать: {lists}"
 
-#: src/pages/dns_routes.py:995
+#: src/pages/dns_routes.py:1172
 #, python-brace-format
 msgid "Syncing (0/{total})..."
 msgstr "Синхронизация (0/{total})..."
 
-#: src/pages/dns_routes.py:1014
+#: src/pages/dns_routes.py:1191
 msgid "Mass Replace VPN Interface"
 msgstr "Массовая замена VPN-интерфейса"
 
-#: src/pages/dns_routes.py:1024
+#: src/pages/dns_routes.py:1201
 msgid "Replace all routes using:"
 msgstr "Заменить все маршруты с:"
 
-#: src/pages/dns_routes.py:1031
+#: src/pages/dns_routes.py:1208
 msgid "With:"
 msgstr "На:"
 
-#: src/pages/dns_routes.py:1048
+#: src/pages/dns_routes.py:1225
 #, python-brace-format
 msgid "Will replace in {n} list(s)"
 msgstr "Будет заменено в {n} списках"
 
-#: src/pages/dns_routes.py:1064
+#: src/pages/dns_routes.py:1241
 msgid "Replace"
 msgstr "Заменить"
 
-#: src/pages/dns_routes.py:1075
+#: src/pages/dns_routes.py:1252
 msgid "Replacing routes..."
 msgstr "Замена маршрутов..."
 
@@ -716,6 +793,9 @@ msgid ""
 msgstr ""
 "В данный момент вы не находитесь в сети маршрутизатора, к которому "
 "подключены."
+
+#~ msgid "geosite/geoip"
+#~ msgstr "geosite/geoip"
 
 #~ msgid "Authentication error."
 #~ msgstr "Ошибка аутентификации."

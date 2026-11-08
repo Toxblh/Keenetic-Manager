@@ -58,6 +58,17 @@
     </screenshots>
 
     <releases>
+        <release version="0.6.2" date="2026-11-08">
+            <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.6.2</url>
+            <description translate="no">
+                <p>Lists from geosite.dat/geoip.dat</p>
+                <ul>
+                    <li>New "lists" tab when adding a list: categories from the geosite.dat and geoip.dat files of runetfreedom and hydraponique, several at once</li>
+                    <li>A category brings both its domains and its IPv4 subnets, and shows how many router groups it will take</li>
+                    <li>Lists are updated only when the file's published hash changes, with GitHub first and jsDelivr as a fallback</li>
+                </ul>
+            </description>
+        </release>
         <release version="0.6.1" date="2026-10-31">
             <url type="details">https://github.com/Toxblh/Keenetic-Manager/releases/tag/v0.6.1</url>
             <description translate="no">
