@@ -1,6 +1,6 @@
 """
 DNS Routes page for Keenetic-Manager.
-UI for managing domain-based routing rules with v2fly integration.
+UI for managing domain-based routing rules with v2fly and geosite/geoip integration.
 """
 
 import threading
@@ -9,8 +9,9 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 from gi.repository import Gtk, Adw, GLib
 
-from .keenetic_dns import DnsRoutesManager, DnsRouteGroup, find_overlaps
+from .keenetic_dns import DnsRoutesManager, DnsRouteGroup, find_overlaps, DOMAIN_LIMIT
 from .v2fly import search_lists, get_available_lists, lists_to_check, refresh_lists, pending_update
+from . import geodat
 from .utils import clear_container
 
 UPDATE_CHECK_TICK = 60 * 60  # seconds; each list is still downloaded only once a day
@@ -110,15 +111,17 @@ def _start_load(self, get_manager, messages=None):
 
 
 def _check_list_updates(self):
-    """Download the v2fly lists of this page that were not checked today, in the
-    background, and show the result. One check at a time: when one ends, it looks
+    """Download the downloaded (v2fly and geo) lists of this page that were not
+    checked today, in the background, and show the result. One check at a time: when one ends, it looks
     again in case the page has moved on to another router with lists of its own."""
     grouped = getattr(self, '_dns_grouped', None)
     if not grouped or getattr(self, '_dns_update_check_running', False):
         return
-    slugs = sorted({groups[0].slug for groups in grouped.values() if groups and groups[0].source == "v2fly"})
-    stale = lists_to_check(slugs)
-    if not stale:
+    stale = {}
+    for source in ("v2fly", "geo"):
+        slugs = sorted({groups[0].slug for groups in grouped.values() if groups and groups[0].source == source})
+        stale[source] = lists_to_check(slugs)
+    if not any(stale.values()):
         return
     self._dns_update_check_running = True
 
@@ -132,7 +135,10 @@ def _check_list_updates(self):
     def work():
         changed = False
         try:
-            changed = refresh_lists(stale)
+            if stale["v2fly"]:
+                changed = refresh_lists(stale["v2fly"])
+            if stale["geo"]:
+                changed = refresh_lists(stale["geo"], fetch=geodat.fetch_category) or changed
         finally:
             GLib.idle_add(finish, changed)
 
@@ -310,13 +316,13 @@ def _render(self, manager: DnsRoutesManager, grouped: dict, interfaces: list[dic
 
     sync_btn = Gtk.Button(label=_("Sync All"))
     sync_btn.set_icon_name("view-refresh-symbolic")
-    sync_btn.set_tooltip_text(_("Update all domain lists from v2fly"))
+    sync_btn.set_tooltip_text(_("Update all downloaded lists (v2fly, geosite/geoip)"))
     sync_btn.connect("clicked", lambda _: _sync_all(self, manager, grouped, interfaces))
     header.append(sync_btn)
 
     add_btn = Gtk.Button(label=_("Add List"))
     add_btn.set_icon_name("list-add-symbolic")
-    add_btn.set_tooltip_text(_("Add a new domain list from v2fly"))
+    add_btn.set_tooltip_text(_("Add a domain list from v2fly, geosite/geoip or by hand"))
     add_btn.connect("clicked", lambda _: _show_add_dialog(self, manager, interfaces))
     header.append(add_btn)
 
@@ -368,7 +374,7 @@ def _render(self, manager: DnsRoutesManager, grouped: dict, interfaces: list[dic
         if not groups:
             continue
         update = None
-        if groups[0].source == "v2fly":
+        if groups[0].downloaded:
             update = pending_update(manager.router.base_url, groups[0].slug,
                                     [d for g in groups for d in g.domains])
         row = _create_group_row(self, manager, slug, groups, interfaces, statuses, update,
@@ -408,7 +414,11 @@ def _create_group_row(self, manager, slug, groups, interfaces, statuses=None, up
 
     name_label = Gtk.Label()
     name_label.set_xalign(0)
-    name_text = GLib.markup_escape_text(slug)
+    # A geo list is labelled "{source}:{CATEGORY}": the source is shown as its tag
+    shown = slug
+    if primary.source == "geo" and slug == primary.slug:
+        shown = slug.partition(geodat.SEPARATOR)[2] or slug
+    name_text = GLib.markup_escape_text(shown)
     # Status tag — parse structured format from API
     group_statuses = [statuses.get(g.name, "ok") for g in groups]
     repaired_s = [s for s in group_statuses if s.startswith("repaired:")]
@@ -453,8 +463,10 @@ def _create_group_row(self, manager, slug, groups, interfaces, statuses=None, up
         date_formatted = date_str
     status_text = f"{total_domains} {_('domains')} · {_('updated')}: {date_formatted}"
     is_managed = DnsRouteGroup.is_managed(primary.description)
-    if primary.source == "v2fly":
-        status_text += f"  <small><span foreground='#5b9bd5'>v2fly</span></small>"
+    if primary.downloaded:
+        tag = "v2fly" if primary.source == "v2fly" else primary.slug.partition(geodat.SEPARATOR)[0]
+        tag = GLib.markup_escape_text(tag)
+        status_text += f"  <small><span foreground='#5b9bd5'>{tag}</span></small>"
         if update:
             status_text += (f"  <span foreground='orange'>⚠ {_('update available')}"
                             f" (+{len(update[0])} −{len(update[1])})</span>")
@@ -567,7 +579,7 @@ def _show_add_dialog(self, manager, interfaces):
 
     dialog = Adw.Window(transient_for=self, modal=True)
     dialog.set_title(_("Add Domain List"))
-    dialog.set_default_size(480, 480)
+    dialog.set_default_size(520, 600)
 
     content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
     content.set_margin_start(20)
@@ -636,6 +648,10 @@ def _show_add_dialog(self, manager, interfaces):
 
     mode_stack.add_titled(v2fly_box, "v2fly", _("v2fly"))
 
+    # === GEO MODE ===
+    geo_box, geo_selected, geo_source = _build_geo_tab(dialog)
+    mode_stack.add_titled(geo_box, "geo", _("lists"))
+
     # === MANUAL MODE ===
     manual_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
 
@@ -686,14 +702,23 @@ def _show_add_dialog(self, manager, interfaces):
     add_btn.add_css_class("suggested-action")
 
     def on_add_clicked(btn):
-        is_v2fly = mode_stack.get_visible_child_name() == "v2fly"
+        mode = mode_stack.get_visible_child_name()
+        is_v2fly = mode == "v2fly"
         iface_id = iface_combo.get_active_id()
         if not iface_id:
             error_label.set_markup(f'<span foreground="red">{_("Please select an interface.")}</span>')
             error_label.set_visible(True)
             return
 
-        if is_v2fly:
+        if mode == "geo":
+            if not geo_selected:
+                error_label.set_markup(f'<span foreground="red">{_("Please select at least one category.")}</span>')
+                error_label.set_visible(True)
+                return
+            slugs = [geodat.make_slug(geo_source[0], name) for name in sorted(geo_selected)]
+            if _do_add_geo(self, manager, slugs, iface_id):
+                dialog.close()
+        elif is_v2fly:
             slug = selected_slug[0] or search_entry.get_text().strip()
             if not slug:
                 error_label.set_markup(f'<span foreground="red">{_("Please select a domain list.")}</span>')
@@ -739,6 +764,158 @@ def _do_add_manual(self, manager, name, domains, interface):
                    progress=_("Creating '{name}'...").format(name=name))
 
 
+def _build_geo_tab(dialog):
+    """The geosite/geoip tab of the add dialog: a source, and its categories with
+    check boxes. Returns (box, the set of checked category names, [source id])."""
+    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+    sources = list(geodat.SOURCES)
+    selected: set[str] = set()
+    current = [sources[0]]
+    categories: list[dict] = []
+    load_gen = [0]
+
+    box.append(Gtk.Label(label=_("Source:"), xalign=0))
+    source_drop = Gtk.DropDown(model=Gtk.StringList.new(sources))
+    box.append(source_drop)
+
+    link = Gtk.Label(xalign=0, use_markup=True)
+    link.add_css_class("caption")
+    box.append(link)
+
+    search = Gtk.SearchEntry()
+    search.set_placeholder_text(_("Filter categories (e.g. youtube, telegram)..."))
+    box.append(search)
+
+    status = Gtk.Label(xalign=0, wrap=True)
+    status.add_css_class("caption")
+    box.append(status)
+
+    scrolled = Gtk.ScrolledWindow()
+    scrolled.set_min_content_height(180)
+    scrolled.set_vexpand(True)
+    rows = Gtk.ListBox()
+    rows.set_selection_mode(Gtk.SelectionMode.NONE)
+    scrolled.set_child(rows)
+    box.append(scrolled)
+
+    def update_status():
+        if not categories:
+            return
+        if selected:
+            sizes = [c["domains"] + c["ips"] for c in categories if c["name"] in selected]
+            status.set_text(_("Selected: {n} categories, {entries} entries, {groups} groups").format(
+                n=len(selected), entries=sum(sizes), groups=sum(_groups_needed(e) for e in sizes)))
+        else:
+            status.set_text(_("{n} categories").format(n=len(categories)))
+
+    def populate():
+        rows.remove_all()
+        query = search.get_text().strip().lower()
+        shown = [c for c in categories if query in c["name"].lower()]
+        # A source has up to some thousand categories: building a row for each
+        # makes the dialog slow, and nobody scrolls through them all
+        for c in shown[:300]:
+            entries = c["domains"] + c["ips"]
+            too_big = entries > geodat.ENTRY_LIMIT
+            parts = []
+            if c["domains"]:
+                parts.append(_("{n} domains").format(n=c["domains"]))
+            if c["ips"]:
+                parts.append(_("{n} IP").format(n=c["ips"]))
+            detail = " · ".join(parts)
+            if too_big:
+                detail += " · " + _("too large for the router")
+            else:
+                detail += " · " + _("{n} group(s)").format(n=_groups_needed(entries))
+            check = Gtk.CheckButton()
+            check.set_active(c["name"] in selected)
+            check.set_sensitive(not too_big)
+            label = Gtk.Label(xalign=0, use_markup=True)
+            label.set_markup("{}  <small><span foreground='gray'>{}</span></small>".format(
+                GLib.markup_escape_text(c["name"]), GLib.markup_escape_text(detail)))
+            check.set_child(label)
+
+            def on_toggled(button, name=c["name"]):
+                if button.get_active():
+                    selected.add(name)
+                else:
+                    selected.discard(name)
+                update_status()
+            check.connect("toggled", on_toggled)
+            check.set_margin_start(6)
+            check.set_margin_top(2)
+            check.set_margin_bottom(2)
+            rows.append(check)
+        if len(shown) > 300:
+            more = Gtk.Label(label=_("{n} more, refine the filter").format(n=len(shown) - 300), xalign=0)
+            more.add_css_class("dim-label")
+            more.set_margin_start(6)
+            rows.append(more)
+
+    def load(source):
+        load_gen[0] += 1
+        gen = load_gen[0]
+        current[0] = source
+        selected.clear()
+        categories.clear()
+        rows.remove_all()
+        url = geodat.SOURCES[source]["url"]
+        link.set_markup('<a href="{0}">{0}</a>'.format(GLib.markup_escape_text(url)))
+        status.set_text(_("Loading categories..."))
+
+        def work():
+            try:
+                result = geodat.get_categories(source)
+                GLib.idle_add(done, result, None)
+            except Exception as ex:
+                GLib.idle_add(done, None, str(ex))
+
+        def done(result, error):
+            if gen != load_gen[0]:
+                return False  # another source was picked meanwhile
+            if error:
+                status.set_text(_("Error: {msg}").format(msg=error))
+                return False
+            categories.extend(result)
+            populate()
+            update_status()
+            return False
+
+        threading.Thread(target=work, daemon=True).start()
+
+    source_drop.connect("notify::selected", lambda drop, _p: load(sources[drop.get_selected()]))
+    search.connect("changed", lambda _e: populate())
+    # Results arriving after the dialog closed are dropped
+    dialog.connect("close-request", lambda _d: load_gen.__setitem__(0, load_gen[0] + 1) or False)
+    load(sources[0])
+    return box, selected, current
+
+
+def _groups_needed(entries: int) -> int:
+    """Groups the router needs for a list of `entries` entries."""
+    return max(1, -(-entries // DOMAIN_LIMIT))
+
+
+def _do_add_geo(self, manager, slugs, interface):
+    """Add geo categories as lists, one after another in one operation. A category
+    that fails does not stop the others."""
+    total = len(slugs)
+
+    def add(progress):
+        failed = []
+        for i, slug in enumerate(slugs):
+            progress(_("Adding ({n}/{total}): {slug}").format(n=i + 1, total=total, slug=slug))
+            try:
+                manager.sync_list(slug, interface, create=True, source="geo")
+            except Exception as e:
+                print(f"[dns_routes] Adding {slug} failed: {e}")
+                failed.append(f"{slug}: {e}")
+        if failed:
+            raise RuntimeError(_("Adding failed for {lists}").format(lists="; ".join(failed)))
+
+    return _run_op(self, manager, add, progress=_("Downloading files..."))
+
+
 def _do_add_list(self, manager, slug, interface, interfaces):
     return _run_op(self, manager,
                    lambda progress: manager.sync_list(slug, interface, create=True),
@@ -749,8 +926,8 @@ def _show_edit_dialog(self, manager, slug, groups, interfaces):
     """Edit dialog: change VPN interface, and for manual groups also edit domains."""
     primary = groups[0]
     is_managed = DnsRouteGroup.is_managed(primary.description)
-    is_v2fly = DnsRouteGroup.is_v2fly(primary.description) if is_managed else False
-    show_domains = not is_v2fly  # Show editable domains for manual and external groups
+    is_downloaded = is_managed and primary.downloaded
+    show_domains = not is_downloaded  # Show editable domains for manual and external groups
 
     dialog = Adw.Window(transient_for=self, modal=True)
     dialog.set_title(_("Edit '{slug}'").format(slug=slug))
@@ -785,7 +962,7 @@ def _show_edit_dialog(self, manager, slug, groups, interfaces):
         content.append(domains_scroll)
         content.append(Gtk.Label(label=_("Route through:"), xalign=0, margin_top=6))
     else:
-        # v2fly: show domains read-only in a text view
+        # v2fly or geo: show domains read-only in a text view
         content.append(Gtk.Label(label=_("Domains (managed automatically):"), xalign=0))
         all_domains = []
         for g in groups:
@@ -825,7 +1002,7 @@ def _show_edit_dialog(self, manager, slug, groups, interfaces):
         new_name = name_entry.get_text().strip() if show_domains else None
         name_changed = bool(new_name and new_name != primary.slug)
 
-        # For non-v2fly groups, also check if domains changed
+        # For lists that are not downloaded, also check if domains changed
         domains_changed = False
         new_domains = None
         if show_domains:
@@ -845,8 +1022,8 @@ def _show_edit_dialog(self, manager, slug, groups, interfaces):
             return
 
         names = [g.name for g in groups]
-        if is_v2fly:
-            # Domains come from v2fly: only the interface can change
+        if is_downloaded:
+            # Domains come from a download: only the interface can change
             op = lambda progress: manager.set_list_interface(names, new_iface)
         elif is_managed:
             # Manual list: re-split across groups as needed
@@ -894,7 +1071,7 @@ def _show_overlaps_dialog(self, manager, slug, grouped, interfaces, overlaps):
         "These domains are in lists routed through different tunnels, so you cannot "
         "tell which tunnel they will take. Route both lists through one tunnel, or "
         "remove the domains from one of the lists. Domains can only be removed from a "
-        "manual list: a v2fly list gets them back on every sync. Turning one of the "
+        "manual list: a downloaded list gets them back on every sync. Turning one of the "
         "lists off also ends the overlap."))
     content.append(intro)
 
@@ -939,7 +1116,7 @@ def _show_overlaps_dialog(self, manager, slug, grouped, interfaces, overlaps):
 
         common = set(domains)
         for name, members in ((slug, groups), (other, other_groups)):
-            if members[0].source == "v2fly":
+            if members[0].downloaded:
                 continue
             own = {d.strip().lower() for g in members for d in g.domains}
             if own - common:  # a list cannot be left empty
@@ -966,17 +1143,17 @@ def _sync_all(self, manager, grouped, interfaces):
     if not grouped:
         return
 
-    # Only sync v2fly lists
-    v2fly_items = [groups for groups in grouped.values() if groups[0].source == "v2fly"]
-    if not v2fly_items:
-        _show_toast(self, _("No v2fly lists to sync"))
+    # Only lists that are downloaded: v2fly and geo
+    items = [groups for groups in grouped.values() if groups[0].downloaded]
+    if not items:
+        _show_toast(self, _("No downloaded lists to sync"))
         return
 
-    total = len(v2fly_items)
+    total = len(items)
 
     def sync(progress):
         failed = []
-        for i, groups in enumerate(v2fly_items):
+        for i, groups in enumerate(items):
             slug = groups[0].slug
             iface = groups[0].interface
             if not iface:
@@ -985,7 +1162,7 @@ def _sync_all(self, manager, grouped, interfaces):
             progress(_("Syncing ({n}/{total}): {slug}").format(n=i + 1, total=total, slug=slug))
             try:
                 # sync_list reads the router itself, so it never works from this page's snapshot
-                manager.sync_list(slug, iface)
+                manager.sync_list(slug, iface, source=groups[0].source)
             except Exception as e:
                 print(f"[dns_routes] Sync failed for {slug}: {e}")
                 failed.append(f"{slug}: {e}")

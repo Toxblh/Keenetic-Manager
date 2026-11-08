@@ -4,12 +4,14 @@ Handles creation, deletion, and sync of domain-based routing rules (KeeneticOS 5
 
 Object-group naming convention:
   Prefix: rt_
-  Description format: [v2fly:]{slug}*{interface}*{date}*{batch}
-  Example descriptions: v2fly:youtube*Wireguard1*240726*1, My list*Wireguard1*240726*1
+  Description format: [v2fly:|geo:]{slug}*{interface}*{date}*{batch}
+  Example descriptions: v2fly:youtube*Wireguard1*240726*1, My list*Wireguard1*240726*1,
+                        geo:runetfreedom:TELEGRAM*Wireguard1*240726*1
 
 The description encodes all metadata needed to manage the list:
   - v2fly: prefix marks a list downloaded from v2fly (absent for manual lists)
-  - slug: v2fly domain list name, or the name of a manual list
+  - geo: prefix marks a category of a geosite.dat/geoip.dat source
+  - slug: v2fly domain list name, {source}:{CATEGORY} of a geo list, or the name of a manual list
   - interface: VPN interface to route through (e.g. Wireguard1)
   - date: last sync date in DDMMYY format
   - batch: batch number (1, 2, 3...) for lists split across multiple groups
@@ -24,6 +26,9 @@ from datetime import datetime
 from typing import Any
 
 DOMAIN_LIMIT = 300
+# Sources whose lists are downloaded, by the prefix that marks them in a description.
+# Their domains are never edited by hand: the next sync would bring them back.
+DOWNLOADED_SOURCES = ("v2fly", "geo")
 GROUP_PREFIX = "rt_"
 # Groups whose description follows the format above are managed by us. All other
 # groups are displayed too, but their description is never rewritten automatically.
@@ -64,7 +69,7 @@ class DnsRouteGroup:
         self.date = date                    # DDMMYY sync date
         self.batch = batch                  # batch number within split group
         self.enabled = enabled              # route is active
-        self.source = source                # "v2fly" or "manual"
+        self.source = source                # "v2fly", "geo" or "manual"
         self.route_index = route_index      # RCI route index (for toggle)
         self.routes = routes or []          # every dns-proxy route of this group
 
@@ -77,11 +82,17 @@ class DnsRouteGroup:
     def managed(self) -> bool:
         return DnsRouteGroup.is_managed(self.description)
 
+    @property
+    def downloaded(self) -> bool:
+        """Its domains come from a download, not from the user."""
+        return self.source in DOWNLOADED_SOURCES
+
     def encode_description(self) -> str:
         """Encode metadata into description string.
         v2fly lists: v2fly:{slug}*{iface}*{date}*{batch}
+        geo lists: geo:{source}:{CATEGORY}*{iface}*{date}*{batch}
         manual lists: {name}*{iface}*{date}*{batch}"""
-        prefix = "v2fly:" if self.source == "v2fly" else ""
+        prefix = f"{self.source}:" if self.source in DOWNLOADED_SOURCES else ""
         return f"{prefix}{self.slug}*{self.interface}*{self.date}*{self.batch}"
 
     @staticmethod
@@ -89,9 +100,11 @@ class DnsRouteGroup:
         """Parse encoded metadata from description string."""
         result = {"slug": "", "interface": "", "date": "", "batch": 1, "source": "manual"}
         d = desc
-        if d.startswith("v2fly:"):
-            result["source"] = "v2fly"
-            d = d[6:]
+        for source in DOWNLOADED_SOURCES:
+            if d.startswith(f"{source}:"):
+                result["source"] = source
+                d = d[len(source) + 1:]
+                break
         parts = d.split("*")
         if len(parts) >= 1:
             result["slug"] = parts[0].strip()
@@ -111,13 +124,20 @@ class DnsRouteGroup:
         """Check if a description follows our encoding format (with or without v2fly: prefix)."""
         if not description:
             return False
-        d = description[6:] if description.startswith("v2fly:") else description
+        d = _strip_source(description)
         return "*" in d and len(d.split("*")) >= 3
 
     @staticmethod
     def is_v2fly(description: str) -> bool:
         """Check if a managed group is from v2fly (has v2fly: prefix)."""
         return description.startswith("v2fly:")
+
+
+def _strip_source(description: str) -> str:
+    for source in DOWNLOADED_SOURCES:
+        if description.startswith(f"{source}:"):
+            return description[len(source) + 1:]
+    return description
 
 
 def _encode(source: str, slug: str, interface: str, date: str, batch: int) -> str:
@@ -135,6 +155,8 @@ def _check_name(name: str) -> str:
     if name.startswith("v2fly:"):
         # The prefix is how a description marks a downloaded list
         raise ValueError(_("List name must not start with 'v2fly:'."))
+    if name.startswith("geo:"):
+        raise ValueError(_("List name must not start with 'geo:'."))
     return name
 
 
@@ -849,6 +871,8 @@ class DnsRoutesManager:
         primary = groups[0]
         if primary.source == "v2fly":
             raise ValueError(_("A v2fly list gets its domains back on every sync."))
+        if primary.downloaded:
+            raise ValueError(_("A downloaded list gets its domains back on every sync."))
         gone = {d.strip().lower() for d in domains}
         keep = [d for g in groups for d in g.domains if d.strip().lower() not in gone]
         if not keep:
@@ -858,15 +882,24 @@ class DnsRoutesManager:
         else:
             self.edit_group(primary.name, domains=keep)
 
-    def sync_list(self, slug: str, interface: str, create: bool = False) -> list[str]:
-        """Sync a v2fly domain list: download, compare, update only what changed.
+    def sync_list(self, slug: str, interface: str, create: bool = False,
+                  source: str = "v2fly") -> list[str]:
+        """Sync a downloaded list (v2fly, or a category of a geo source): download,
+        compare, update only what changed.
         Raises without touching the router if the download fails or is empty.
         With `create` the list must not be on the router yet.
         Returns list of group names."""
-        from .v2fly import fetch_domain_list, remember_synced
+        from . import v2fly
+        from .v2fly import remember_synced
 
         # Download outside the lock: it does not touch the router
-        domains, _total = fetch_domain_list(slug)
-        result = self.apply_list("v2fly", slug, domains, interface, create=create)
+        if source == "geo":
+            from .geodat import fetch_category
+            domains, _total = fetch_category(slug)
+        elif source == "v2fly":
+            domains, _total = v2fly.fetch_domain_list(slug)
+        else:
+            raise ValueError(f"Unknown source '{source}'")
+        result = self.apply_list(source, slug, domains, interface, create=create)
         remember_synced(self.router.base_url, slug, domains)
         return result

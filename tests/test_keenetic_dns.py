@@ -937,3 +937,45 @@ class TestUpdateCheck:
         upstream["lists"]["yt"] = ["a.com", "bad domain!!"]
         manager.sync_list("yt", "Wireguard0", create=True)
         assert v2fly.pending_update("http://other", "yt", ["a.com"]) == (["bad domain!!"], [])
+
+
+# --- geo lists ---------------------------------------------------------------
+
+class TestGeoLists:
+    def test_description_round_trip(self):
+        desc = f"geo:runetfreedom:TELEGRAM*Wireguard0*{TODAY}*2"
+        meta = DnsRouteGroup.parse_description(desc)
+        assert meta["source"] == "geo" and meta["slug"] == "runetfreedom:TELEGRAM" and meta["batch"] == 2
+        assert DnsRouteGroup.is_managed(desc)
+        group = DnsRouteGroup(name="rt_0", slug=meta["slug"], interface="Wireguard0",
+                              date=TODAY, batch=2, source="geo")
+        assert group.encode_description() == desc and group.downloaded
+
+    def test_sync_writes_domains_and_subnets(self, manager, router, monkeypatch):
+        from src.api import geodat
+        monkeypatch.setattr(geodat, "fetch_category",
+                            lambda slug: (["t.me", "91.108.4.0/22"], 2))
+        manager.sync_list("hydraponique:TELEGRAM", "Wireguard0", create=True, source="geo")
+        group = router.groups["rt_0"]
+        assert group["description"] == f"geo:hydraponique:TELEGRAM*Wireguard0*{TODAY}*1"
+        assert router.domains("rt_0") == ["t.me", "91.108.4.0/22"]
+        rows = manager.get_grouped_by_slug()
+        assert rows["hydraponique:TELEGRAM"][0].source == "geo"
+
+    def test_geo_and_v2fly_list_of_one_name_are_separate_rows(self, manager, router):
+        router.add_group("rt_0", f"v2fly:telegram*Wireguard0*{TODAY}*1", ["a.com"], "Wireguard0")
+        router.add_group("rt_1", f"geo:hydraponique:TELEGRAM*Wireguard0*{TODAY}*1", ["b.com"], "Wireguard0")
+        assert set(manager.get_grouped_by_slug()) == {"telegram", "hydraponique:TELEGRAM"}
+
+    def test_domains_of_a_geo_list_cannot_be_removed(self, manager, router):
+        router.add_group("rt_0", f"geo:hydraponique:TELEGRAM*Wireguard0*{TODAY}*1",
+                         ["a.com", "b.com"], "Wireguard0")
+        groups = manager.get_grouped_by_slug()["hydraponique:TELEGRAM"]
+        with pytest.raises(ValueError):
+            manager.remove_domains(groups, ["a.com"])
+        assert router.posts == []
+
+    def test_manual_name_cannot_carry_the_geo_marker(self, manager, router):
+        with pytest.raises(ValueError):
+            manager.apply_list("manual", "geo:x", ["mine.com"], "Wireguard0")
+        assert router.posts == []

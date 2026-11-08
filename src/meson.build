@@ -28,6 +28,7 @@ configure_file(
 
 keeneticmanager_sources = [
   '__init__.py',
+  'api/geodat.py',
   'api/keenetic_dns.py',
   'api/keenetic_router.py',
   'api/v2fly.py',

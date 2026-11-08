@@ -292,14 +292,18 @@ def lists_to_check(slugs, now: float = None) -> list[str]:
     return result
 
 
-def refresh_lists(slugs, now: float = None) -> bool:
+def refresh_lists(slugs, now: float = None, fetch=None) -> bool:
     """Download the lists and keep them as snapshots. A list that fails keeps its old
-    snapshot. Returns True if any list was downloaded. Blocks: run it off the main thread."""
+    snapshot. Returns True if any list was downloaded. Blocks: run it off the main thread.
+    `fetch(slug) -> (domains, total)` downloads a list, fetch_domain_list by default:
+    lists of other sources (geo) keep their snapshots here too, under slugs of
+    their own that never clash with a v2fly name."""
     now = time.time() if now is None else now
+    fetch = fetch or fetch_domain_list
     fetched = {}
     for slug in slugs:
         try:
-            domains, _total = fetch_domain_list(slug)
+            domains, _total = fetch(slug)
         except Exception as e:
             print(f"[v2fly] Update check failed for {slug}: {e}")
             _failed_at[slug] = now
